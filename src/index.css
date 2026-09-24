@@ -1,0 +1,107 @@
+@import "@fontsource-variable/inter";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --app-bg: #f5f7fa;
+  }
+
+  * {
+    @apply border-slate-200/80;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-[var(--app-bg)] font-sans text-slate-700 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold tracking-tight text-slate-900;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-ink-950;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400;
+  }
+}
+
+@layer components {
+  /* Painel lateral escuro com brilho quente sutil da identidade AMOCOC */
+  .sidebar-surface {
+    background-color: #131a29;
+    background-image:
+      radial-gradient(
+        120% 60% at 10% -10%,
+        rgba(249, 115, 22, 0.16) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        90% 50% at 110% 110%,
+        rgba(245, 179, 1, 0.1) 0%,
+        transparent 60%
+      );
+  }
+
+  .gradient-brand {
+    background-image: linear-gradient(135deg, #f97316 0%, #f5b301 100%);
+  }
+
+  .gradient-brand-hover {
+    background-image: linear-gradient(135deg, #ea6a0c 0%, #dd9e00 100%);
+  }
+
+  .text-gradient-brand {
+    background-image: linear-gradient(120deg, #ea6a0c, #f5b301);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-card;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-slate-200/80;
+  }
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/70 to-transparent;
+  }
+}
+
+@media print {
+  body {
+    background: white;
+  }
+}
