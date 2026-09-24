@@ -57,7 +57,7 @@ npm run build     # gera /dist
 npm run preview   # serve o build
 ```
 
-> **Deploy (ação manual sua):** suba o conteúdo da pasta `dist/` no servidor/hospedagem estática. O cliente recebe o sistema em **estado de primeira utilização** (§13): SuperAdmin `amococ`/`123` + assinatura oficial já cadastrada e **sem nenhum associado, identificador utilizado, carteirinha ou dado de demonstração**. Verifique antes com `node scripts/verify-deploy-clean.mjs`.
+> **Deploy (ação manual sua):** suba o conteúdo da pasta `dist/` no servidor/hospedagem estática. O cliente recebe o sistema em **estado de primeira utilização** (§13): SuperAdmin `amococ`/`123` + assinatura oficial já cadastrada e **sem nenhum associado, identificador utilizado, carteirinha ou dado de demonstração**. Verifique antes com `node scripts/verify-deploy-clean.mjs`. **No Vercel**, o fallback SPA já está configurado (`vercel.json` na raiz + cópia em `public/`): deep links como `https://painel-amococ.vercel.app/login` e o F5 em qualquer tela **não dão 404**.
 
 > A aplicação roda **100% local**, sem domínio, sem hospedagem e sem backend remoto.
 
