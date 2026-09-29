@@ -46,6 +46,7 @@ describe("GET /api/health", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       status: "error",
+      code: "NOT_FOUND",
       message: "Rota não encontrada.",
     });
   });
