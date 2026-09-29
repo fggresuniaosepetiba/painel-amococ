@@ -1,7 +1,6 @@
 import { cardsRepository, membersRepository } from "@/repositories";
 import type { Member, MemberStatus, PublicUser } from "@amococ/shared";
 import { createId } from "@/utils/id";
-import { auditService } from "./auditService";
 import { authorizationService } from "./authorizationService";
 import { membershipCardCodeService } from "./membershipCardCodeService";
 import { membershipNumberService } from "./membershipNumberService";
@@ -90,14 +89,7 @@ export const memberService = {
     };
 
     const created = await membersRepository.create(member);
-    await auditService.log({
-      userId: actor.id,
-      userName: actor.name,
-      action: "MEMBER_CREATED",
-      entity: "member",
-      entityId: created.id,
-      details: `Associado "${created.fullName}" criado — matrícula ${created.membershipNumber}, código ${created.cardCode}`,
-    });
+
     return created;
   },
 
@@ -134,14 +126,7 @@ export const memberService = {
     };
 
     const updated = await membersRepository.update(id, patch);
-    await auditService.log({
-      userId: actor.id,
-      userName: actor.name,
-      action: "MEMBER_UPDATED",
-      entity: "member",
-      entityId: id,
-      details: `Dados de "${updated.fullName}" atualizados (matrícula ${updated.membershipNumber} preservada)`,
-    });
+
     return updated;
   },
 
@@ -156,14 +141,7 @@ export const memberService = {
       inactivatedAt: now,
       updatedAt: now,
     });
-    await auditService.log({
-      userId: actor.id,
-      userName: actor.name,
-      action: "MEMBER_INACTIVATED",
-      entity: "member",
-      entityId: id,
-      details: `"${updated.fullName}" inativado — matrícula ${updated.membershipNumber} e código ${updated.cardCode} preservados`,
-    });
+
     return updated;
   },
 
@@ -181,14 +159,7 @@ export const memberService = {
       inactivatedAt: null,
       updatedAt: new Date().toISOString(),
     });
-    await auditService.log({
-      userId: actor.id,
-      userName: actor.name,
-      action: "MEMBER_REACTIVATED",
-      entity: "member",
-      entityId: id,
-      details: `"${updated.fullName}" reativado — matrícula ${updated.membershipNumber} e código ${updated.cardCode} preservados`,
-    });
+
     return updated;
   },
 
@@ -227,13 +198,6 @@ export const memberService = {
     await membersRepository.delete(id);
 
     // 6) Auditoria completa (nunca registra senha):
-    await auditService.log({
-      userId: actor.id,
-      userName: actor.name,
-      action: "MEMBER_DELETED",
-      entity: "member",
-      entityId: id,
-      details: `Associado "${existing.fullName}" excluído definitivamente — ID ${id}, matrícula ${existing.membershipNumber} e código ${existing.cardCode} permanecem reservados e nunca serão reutilizados`,
-    });
+
   },
 };

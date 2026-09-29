@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowLeft,
   CalendarDays,
@@ -13,7 +12,6 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react";
-import { db } from "@/db/database";
 import { useAuth } from "@/hooks/AuthProvider";
 import { useToast } from "@/hooks/ToastProvider";
 import { useConfirm } from "@/hooks/ConfirmProvider";
@@ -24,9 +22,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/misc";
 import { StatusBadge } from "@/components/shared/badges";
 import { CardPreviewDialog } from "@/features/cards/CardPreviewDialog";
-import { memberService } from "@/services";
+import { cardGenerationService, memberService } from "@/services";
 import { formatDate, initialsOf } from "@/utils/format";
 import { cn } from "@/utils/cn";
+import type { Member, MembershipCardRecord } from "@amococ/shared";
 
 export function MemberDetailPage() {
   const { id } = useParams();
@@ -34,15 +33,35 @@ export function MemberDetailPage() {
   const toast = useToast();
   const confirm = useConfirm();
   const [cardOpen, setCardOpen] = useState(false);
+  const [member, setMember] = useState<Member | null | undefined>(undefined);
+  const [issuedCard, setIssuedCard] = useState<
+    MembershipCardRecord | null | undefined
+  >(undefined);
 
-  const member = useLiveQuery(
-    () => (id ? db.members.get(id) : undefined),
-    [id]
-  );
-  const issuedCard = useLiveQuery(
-    () => (id ? db.cards.where("memberId").equals(id).first() : undefined),
-    [id]
-  );
+  const reload = useCallback(async () => {
+    if (!id) {
+      setMember(null);
+      setIssuedCard(null);
+      return;
+    }
+    try {
+      const [found, card] = await Promise.all([
+        memberService.getById(id),
+        cardGenerationService.getByMemberId(id),
+      ]);
+      setMember(found ?? null);
+      setIssuedCard(card ?? null);
+    } catch {
+      setMember(null);
+      setIssuedCard(null);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    setMember(undefined);
+    setIssuedCard(undefined);
+    void reload();
+  }, [id, reload]);
 
   if (member === undefined) {
     return (
@@ -96,6 +115,7 @@ export function MemberDetailPage() {
         await memberService.reactivate(user, member.id);
         toast.success("Associado reativado com sucesso.");
       }
+      await reload();
     } catch {
       toast.error("Não foi possível concluir", "Tente novamente.");
     }
@@ -351,8 +371,11 @@ export function MemberDetailPage() {
       {cardOpen && user && (
         <CardPreviewDialog
           open
-          onOpenChange={(o) => {
-            if (!o) setCardOpen(false);
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
+              setCardOpen(false);
+              void reload();
+            }
           }}
           mode="generate"
           memberId={member.id}

@@ -1,7 +1,5 @@
-import { useMemo, useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useEffect, useMemo, useState } from "react";
 import { History, Search } from "lucide-react";
-import { db } from "@/db/database";
 import { PageContainer, PageHeader } from "@/components/shared/page";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,7 +16,8 @@ import {
 } from "@/components/ui/table";
 import { ActionBadge } from "@/components/shared/badges";
 import { formatDateTime, formatRelativeTime, initialsOf } from "@/utils/format";
-import type { AuditAction } from "@amococ/shared";
+import { auditService } from "@/services";
+import type { AuditAction, AuditLog } from "@amococ/shared";
 
 const ACTIONS: { value: AuditAction | "ALL"; label: string }[] = [
   { value: "ALL", label: "Todas as ações" },
@@ -49,9 +48,22 @@ export function AuditPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const logs =
-    useLiveQuery(() => db.audit.orderBy("createdAt").reverse().toArray(), []) ??
-    [];
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const all = await auditService.getAll();
+        if (!cancelled) setLogs(all);
+      } catch {
+        // Mantém a lista atual.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const users = useMemo(() => {
     const set = new Set(logs.map((l) => l.userName));

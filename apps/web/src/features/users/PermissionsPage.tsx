@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Save, ShieldCheck, ShieldQuestion } from "lucide-react";
-import { db } from "@/db/database";
 import { useAuth } from "@/hooks/AuthProvider";
 import { useToast } from "@/hooks/ToastProvider";
 import { PageContainer, PageHeader } from "@/components/shared/page";
@@ -13,6 +11,7 @@ import {
   ALL_PERMISSIONS,
   PERMISSION_GROUPS,
   type Permission,
+  type User,
 } from "@amococ/shared";
 import { authorizationService, userService } from "@/services";
 import { cn } from "@/utils/cn";
@@ -21,7 +20,19 @@ export function PermissionsPage() {
   const { user: actor } = useAuth();
   const toast = useToast();
 
-  const users = useLiveQuery(() => db.users.toArray(), []) ?? [];
+  const [users, setUsers] = useState<User[]>([]);
+
+  const load = useCallback(async () => {
+    try {
+      setUsers(await userService.getAll());
+    } catch {
+      // Mantém a lista atual.
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
   const sortedUsers = useMemo(
     () => [...users].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
     [users]
@@ -80,6 +91,7 @@ export function PermissionsPage() {
     setSaving(true);
     try {
       await userService.savePermissions(actor, selected.id, draft);
+      await load();
       toast.success(
         "Permissões atualizadas",
         `${draft.length} permissões salvas para ${selected.name}.`

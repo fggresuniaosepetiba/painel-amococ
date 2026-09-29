@@ -14,7 +14,6 @@ export {
   membershipCardRenderer,
   SignatureMissingError,
 } from "./cardGenerationService";
-export { seedIfEmpty } from "./seedService";
 export { systemService } from "./systemService";
 export { usedIdentifiersService } from "./usedIdentifiersService";
 export { sessionGuard } from "./sessionGuard";

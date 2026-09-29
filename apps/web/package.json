@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Frontend do Painel AMOCOC (React + Vite + Tailwind + Dexie)",
+  "description": "Frontend do Painel AMOCOC (React + Vite + Tailwind + API)",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -26,8 +26,6 @@
     "@radix-ui/react-tooltip": "^1.1.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "dexie": "^4.0.11",
-    "dexie-react-hooks": "^1.1.7",
     "html-to-image": "^1.11.11",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
