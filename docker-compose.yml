@@ -1,0 +1,18 @@
+# Infraestrutura local do Painel AMOCOC (Fase 1).
+# Produção usa Neon trocando apenas a DATABASE_URL — nenhum serviço novo aqui.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: amococ-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-amococ}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-amococ_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-amococ}
+    volumes:
+      - amococ-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  amococ-postgres-data:
