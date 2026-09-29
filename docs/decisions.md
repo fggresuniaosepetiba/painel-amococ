@@ -64,3 +64,12 @@ banco de desenvolvimento.
 O shared não é compilado; import runtime quebraria `node dist/`. Só `import type`
 (verificado por `src/test/shared-imports.test.ts`). Listas runtime (18 permissões,
 18 eventos) são espelhos documentados — replicar mudanças do shared.
+
+## ADR-013 — Semântica do import (Fase 3)
+
+Upsert por chave natural (users: id→login; members: id; cards: cardCode+memberId;
+audit: id via `skipDuplicates`; settings: put; usedIdentifiers: register idempotente).
+Rerun = zero inserções. Itens em conflito vão para `errors` sem abortar. Hashes
+legados preservados + `mustChangePassword: true` em todo usuário importado (upgrade
+bcrypt na Fase 5). A criação de membro já registra a reserva na mesma transação —
+o loop de `usedIdentifiers` só complementa.
