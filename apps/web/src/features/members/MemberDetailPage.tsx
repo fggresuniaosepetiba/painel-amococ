@@ -371,8 +371,8 @@ export function MemberDetailPage() {
       {cardOpen && user && (
         <CardPreviewDialog
           open
-          onOpenChange={(o) => {
-            if (!o) {
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
               setCardOpen(false);
               void reload();
             }

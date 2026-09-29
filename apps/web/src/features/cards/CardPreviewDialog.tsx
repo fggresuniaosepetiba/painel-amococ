@@ -231,8 +231,8 @@ export function CardPreviewDialog(props: CardPreviewDialogProps) {
   return (
     <Dialog
       open={open}
-      onOpenChange={(o) => {
-        if (!generating || !o) onOpenChange(o);
+      onOpenChange={(nextOpen) => {
+        if (!generating || !nextOpen) onOpenChange(nextOpen);
       }}
     >
       <DialogContent size="xl">
