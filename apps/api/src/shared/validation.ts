@@ -93,6 +93,12 @@ export const resetPasswordSchema = z.object({
   actor: actorSchema,
 });
 
+// Temporário da Fase 4 (authService do frontend). Remoção obrigatória na Fase 5:
+// o login passa a JWT e este endpoint deixa de existir.
+export const verifyPasswordSchema = z.object({
+  password: z.string().min(1, "Informe a senha."),
+});
+
 export const cardGenerateSchema = z.object({
   memberId: z.string().min(1),
   pngDataUrl: z.string().min(1, "PNG da carteirinha ausente."),

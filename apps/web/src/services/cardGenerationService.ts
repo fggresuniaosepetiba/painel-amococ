@@ -108,14 +108,7 @@ export const cardGenerationService = {
       fileSizeBytes: Math.round((pngDataUrl.length * 3) / 4),
     };
     const saved = await cardsRepository.create(record);
-    await auditService.log({
-      userId: actor.id,
-      userName: actor.name,
-      action: "CARD_GENERATED",
-      entity: "card",
-      entityId: saved.id,
-      details: `Carteirinha ${saved.cardCode} gerada para "${saved.memberName}" (matrícula ${saved.membershipNumber})`,
-    });
+
     return saved;
   },
 

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useEffect, useState } from "react";
 import { Database, Download, Info, MonitorCog, Package, Trash2 } from "lucide-react";
 import {
   Card,
@@ -10,10 +9,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/misc";
-import { db } from "@/db/database";
 import { useAuth } from "@/hooks/AuthProvider";
 import { useToast } from "@/hooks/ToastProvider";
-import { systemService } from "@/services";
+import {
+  auditService,
+  cardGenerationService,
+  memberService,
+  systemService,
+  userService,
+} from "@/services";
 import { authorizationService } from "@/services/authorizationService";
 import {
   APP_ENVIRONMENT,
@@ -68,14 +72,35 @@ export function SystemSettingsPage() {
     }
   };
 
-  const counts = useLiveQuery(async () => {
-    const [members, users, cards, audit] = await Promise.all([
-      db.members.count(),
-      db.users.count(),
-      db.cards.count(),
-      db.audit.count(),
-    ]);
-    return { members, users, cards, audit };
+  const [counts, setCounts] = useState<
+    { members: number; users: number; cards: number; audit: number } | undefined
+  >(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [members, users, cards, audit] = await Promise.all([
+          memberService.getAll(),
+          userService.getAll(),
+          cardGenerationService.getIssuedCards(),
+          auditService.getAll(),
+        ]);
+        if (!cancelled) {
+          setCounts({
+            members: members.length,
+            users: users.length,
+            cards: cards.length,
+            audit: audit.length,
+          });
+        }
+      } catch {
+        // Mantém indefinido; a tela segue utilizável.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const info: { label: string; value: string }[] = [
@@ -83,8 +108,8 @@ export function SystemSettingsPage() {
     { label: "Entidade", value: APP_FULL_NAME },
     { label: "Versão", value: APP_VERSION },
     { label: "Ambiente", value: APP_ENVIRONMENT },
-    { label: "Banco de dados", value: "IndexedDB (Dexie) — amococ_db" },
-    { label: "Armazenamento", value: "Navegador local (não envia dados externos)" },
+    { label: "Banco de dados", value: "PostgreSQL (via API)" },
+    { label: "Armazenamento", value: "Servidor da API" },
     { label: "Navegador", value: navigator.userAgent.split(") ")[0] + ")" },
   ];
 
@@ -120,7 +145,7 @@ export function SystemSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Dados armazenados localmente</CardTitle>
+          <CardTitle>Dados armazenados</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -142,10 +167,9 @@ export function SystemSettingsPage() {
 
           <div className="mt-5">
             <Alert variant="info" title="Sobre a persistência">
-              Os dados ficam gravados no IndexedDB deste navegador e permanecem
-              após recarregar a página, fechar o navegador ou reiniciar o
-              computador. A arquitetura já está preparada para trocar a
-              persistência local por um backend real sem reescrever a interface.
+              Os dados ficam gravados no banco do servidor (PostgreSQL, via
+              API) e permanecem após recarregar a página, fechar o navegador
+              ou reiniciar o computador.
             </Alert>
           </div>
         </CardContent>
@@ -160,12 +184,12 @@ export function SystemSettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert variant="info" title="Migração para o banco do servidor">
-              Baixa todos os dados locais (associados, usuários, carteirinhas,
+            <Alert variant="info" title="Backup da base do servidor">
+              Baixa todos os dados (associados, usuários, carteirinhas,
               configurações, auditoria e identificadores) em um arquivo JSON,
               pronto para importar no PostgreSQL via{" "}
               <strong className="font-mono">POST /api/system/import</strong>. A
-              base local <strong>não</strong> é alterada.
+              base <strong>não</strong> é alterada.
             </Alert>
             <Button
               type="button"

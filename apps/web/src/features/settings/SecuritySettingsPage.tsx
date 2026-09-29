@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLiveQuery } from "dexie-react-hooks";
 import { Eye, EyeOff, KeyRound, LogOut, Save, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/AuthProvider";
@@ -21,6 +20,7 @@ import { changePasswordSchema, type ChangePasswordFormValues } from "@/schemas/a
 import { authService, settingsService } from "@/services";
 import { formatDateTime } from "@/utils/format";
 import { RoleBadge } from "@/components/shared/badges";
+import type { AppSettings } from "@amococ/shared";
 import { SESSION_DURATION_DAYS } from "@/constants";
 
 export function SecuritySettingsPage() {
@@ -32,7 +32,22 @@ export function SecuritySettingsPage() {
     confirm: false,
   });
 
-  const settings = useLiveQuery(() => settingsService.get(), []);
+  const [settings, setSettings] = useState<AppSettings | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const loaded = await settingsService.get();
+        if (!cancelled) setSettings(loaded);
+      } catch {
+        // Mantém indefinido; a troca de senha informa o erro.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const {
     register,
@@ -64,6 +79,11 @@ export function SecuritySettingsPage() {
         lastPasswordChangeAt: new Date().toISOString(),
       });
       await refreshUser();
+      try {
+        setSettings(await settingsService.get());
+      } catch {
+        // Mantém o estado atual.
+      }
       reset();
       toast.success(
         "Senha alterada com sucesso",

@@ -5,8 +5,11 @@ import type {
   MembershipCardRecord,
   Member,
   MemberStatus,
+  Permission,
+  Role,
   UsedIdentifier,
   User,
+  UserStatus,
 } from "@amococ/shared";
 
 /**
@@ -21,9 +24,32 @@ export interface UsersRepository {
   getById(id: string): Promise<User | undefined>;
   getByLogin(login: string): Promise<User | undefined>;
   count(): Promise<number>;
-  create(user: User): Promise<User>;
-  update(id: string, patch: Partial<User>): Promise<User>;
+  /**
+   * Cria via API (hash bcrypt no servidor). `initialPassword` em texto
+   * plano — nunca persistido no cliente; o `User` devolvido não traz
+   * credenciais (salt/hash vazios — o login usa `/verify`, Fase 4).
+   */
+  create(input: NewUserInput): Promise<User>;
+  /**
+   * `patch` com `newPassword` → `POST /:id/reset-password`;
+   * só `{status}` → `/status`; só `{permissions}` → `/permissions`;
+   * demais campos → `PATCH /:id`.
+   */
+  update(id: string, patch: UserPatch): Promise<User>;
 }
+
+/** Entrada de criação de usuário (sem id/hash — gerados no servidor). */
+export interface NewUserInput {
+  name: string;
+  login: string;
+  email: string;
+  role: Role;
+  status: UserStatus;
+  permissions: Permission[];
+  initialPassword: string;
+}
+
+export type UserPatch = Partial<User> & { newPassword?: string };
 
 export interface MembersRepository {
   getAll(): Promise<Member[]>;

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLiveQuery } from "dexie-react-hooks";
 import {
   BadgeCheck,
   CircleAlert,
@@ -30,7 +29,6 @@ import {
   type SignatureSettingsFormValues,
 } from "@/schemas/settings";
 import {
-  auditService,
   imageService,
   settingsService,
   signatureService,
@@ -39,7 +37,7 @@ import { MAX_SIGNATURE_SIZE } from "@/constants";
 import { formatDate } from "@/utils/format";
 import { MembershipCard } from "@/features/cards/MembershipCard";
 import type { CardRenderContext } from "@/services/cardGenerationService";
-import type { Member, SignaturePlacement } from "@amococ/shared";
+import type { AppSettings, Member, SignaturePlacement } from "@amococ/shared";
 
 /** Imagem selecionada pelo usuário, ainda em rascunho (não aplicada). */
 interface DraftImage {
@@ -85,7 +83,7 @@ export function SignatureSettingsPage() {
   const readOnly = !hasPermission("settings.edit");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const settings = useLiveQuery(() => settingsService.get(), []);
+  const [settings, setSettings] = useState<AppSettings | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [draftImage, setDraftImage] = useState<DraftImage | null>(null);
   const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
@@ -101,6 +99,29 @@ export function SignatureSettingsPage() {
     resolver: zodResolver(signatureSettingsSchema),
     defaultValues: { presidentName: "", presidentTitle: "" },
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const loaded = await settingsService.get();
+        if (!cancelled) setSettings(loaded);
+      } catch {
+        // A tela mostra o erro ao salvar; aqui mantém o esqueleto.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const reloadSettings = async () => {
+    try {
+      setSettings(await settingsService.get());
+    } catch {
+      // Mantém o estado atual.
+    }
+  };
 
   useEffect(() => {
     if (!settings) return;
@@ -191,16 +212,8 @@ export function SignatureSettingsPage() {
       await settingsService.updateCard({ signaturePlacement: null });
       setDraftImage(null);
       setPlacement(null);
-      if (user) {
-        await auditService.log({
-          userId: user.id,
-          userName: user.name,
-          action: "SIGNATURE_UPDATED",
-          entity: "settings",
-          entityId: "signature",
-          details: "Assinatura oficial removida",
-        });
-      }
+      // Auditoria (SIGNATURE_UPDATED + SETTINGS_UPDATED) no servidor.
+      await reloadSettings();
       toast.info("Assinatura removida", "Novas carteirinhas ficarão bloqueadas.");
     } finally {
       setBusy(false);
@@ -220,16 +233,8 @@ export function SignatureSettingsPage() {
           : {}),
       });
       await settingsService.updateCard({ signaturePlacement: placement });
-      await auditService.log({
-        userId: user.id,
-        userName: user.name,
-        action: draftImage ? "SIGNATURE_UPDATED" : "SETTINGS_UPDATED",
-        entity: "settings",
-        entityId: "signature",
-        details: draftImage
-          ? "Assinatura oficial do Presidente atualizada (imagem + posição)"
-          : "Dados/posição da assinatura oficial atualizados",
-      });
+      // Auditoria (SIGNATURE_UPDATED / SETTINGS_UPDATED) no servidor.
+      await reloadSettings();
       const hadDraft = Boolean(draftImage);
       setDraftImage(null);
       reset(values);

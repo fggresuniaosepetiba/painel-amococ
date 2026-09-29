@@ -4,8 +4,8 @@ import {
   SESSION_STORAGE_KEY,
 } from "@/constants";
 import { usersRepository } from "@/repositories";
+import { api } from "@/lib/apiClient";
 import type { PublicUser, SessionInfo, User } from "@amococ/shared";
-import { hashPassword, verifyPassword } from "@/utils/password";
 import { auditService } from "./auditService";
 import { authorizationService } from "./authorizationService";
 
@@ -86,8 +86,13 @@ export const authService = {
         "INVALID_CREDENTIALS"
       );
     }
-    const valid = await verifyPassword(password, user.salt, user.passwordHash);
-    if (!valid) {
+    // Senha conferida no servidor (endpoint temporário — remoção na Fase 5).
+    // Não revela o motivo: inexistente e errada caem no mesmo erro genérico.
+    const { ok } = await api<{ ok: boolean }>(`/api/users/${user.id}/verify`, {
+      method: "POST",
+      body: { password },
+    });
+    if (!ok) {
       throw new AuthError(
         "Usuário ou senha incorretos. Verifique os dados e tente novamente.",
         "INVALID_CREDENTIALS"
@@ -99,9 +104,8 @@ export const authService = {
         "INACTIVE_USER"
       );
     }
-    const updated = await usersRepository.update(user.id, {
-      lastLoginAt: new Date().toISOString(),
-    });
+    // O /verify atualizou o lastLoginAt no servidor — relê o registro.
+    const updated = (await usersRepository.getById(user.id)) ?? user;
     sessionStorage.removeItem(SESSION_NOTICE_KEY); // não herda aviso antigo
     writeSession(updated.id);
     await auditService.log({
@@ -177,29 +181,15 @@ export const authService = {
   ): Promise<void> {
     const stored = await usersRepository.getById(user.id);
     if (!stored) throw new AuthError("Usuário não encontrado.", "INVALID_CREDENTIALS");
-    const valid = await verifyPassword(
-      currentPassword,
-      stored.salt,
-      stored.passwordHash
-    );
-    if (!valid) {
+    const { ok } = await api<{ ok: boolean }>(`/api/users/${user.id}/verify`, {
+      method: "POST",
+      body: { password: currentPassword },
+    });
+    if (!ok) {
       throw new AuthError("A senha atual está incorreta.", "INVALID_CREDENTIALS");
     }
-    const { salt, hash } = await hashPassword(newPassword);
-    await usersRepository.update(user.id, {
-      salt,
-      passwordHash: hash,
-      mustChangePassword: false,
-      updatedAt: new Date().toISOString(),
-    });
-    await auditService.log({
-      userId: user.id,
-      userName: user.name,
-      action: "PASSWORD_CHANGED",
-      entity: "user",
-      entityId: user.id,
-      details: "Senha alterada pelo próprio usuário",
-    });
+    // Hash + auditoria PASSWORD_CHANGED no servidor (reset-password).
+    await usersRepository.update(user.id, { newPassword });
   },
 
   authorizationService,
