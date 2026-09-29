@@ -36,3 +36,31 @@ A máquina tinha um PostgreSQL 17 nativo ocupando a porta do host. Optou-se por 
 
 Não existe CI no repo (sem `.github/`). Conforme a spec 002, nada de CI/CD na Fase 1.
 Na Fase 6: GitHub Actions com typecheck, testes API, build web e bateria Playwright.
+
+## ADR-008 — bcryptjs (não bcrypt nativo) na Fase 2
+
+Mesmo algoritmo bcrypt, implementação pure-JS: evita toolchain de compilação nativa no
+Windows com pnpm. Atrás da interface `passwordHasher` — troca futura sem tocar services.
+
+## ADR-009 — zod na API para validação de entrada
+
+Mesma lib do frontend; valida os mesmos contratos (nome, CPF, data ISO, telefones,
+permissões). Erros viram 400 `VALIDATION_ERROR`.
+
+## ADR-010 — `actor` opcional no corpo (auditoria sem auth)
+
+Sem autenticação até a Fase 5, endpoints aceitam `actor: {id, name}` opcional SOMENTE
+para atribuição de auditoria (ausente → "sistema"). Nenhuma checagem de permissão é
+feita — e nenhum endpoint finge autorizar. Fase 5 substitui por JWT.
+
+## ADR-011 — Banco isolado `amococ_test` + suíte serializada
+
+Integração usa `TEST_DATABASE_URL` (criação + `migrate deploy` no globalSetup) e
+`singleFork` no Vitest: arquivos serializados, reset entre testes. Nunca toca no
+banco de desenvolvimento.
+
+## ADR-012 — `@amococ/shared` só como tipo na API
+
+O shared não é compilado; import runtime quebraria `node dist/`. Só `import type`
+(verificado por `src/test/shared-imports.test.ts`). Listas runtime (18 permissões,
+18 eventos) são espelhos documentados — replicar mudanças do shared.
