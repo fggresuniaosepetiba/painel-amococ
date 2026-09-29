@@ -1,15 +1,21 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type {
+  AppSettings,
   MembershipCardRecord,
   Member,
   SignatureSettings,
 } from "@amococ/shared";
 import { prisma } from "../../lib/prisma.js";
 import { logAudit } from "../../shared/audit.js";
+import { ApiError } from "../../shared/api-error.js";
+import type { BackupInput } from "../../shared/validation.js";
+import { backupSchema } from "../../shared/validation.js";
 import type { Db } from "../../shared/db.js";
 import { createId } from "../../shared/ids.js";
 import { DEFAULT_SETTINGS } from "../../domain/default-settings.js";
+import { mergeWithDefaults } from "../../domain/default-settings.js";
+import { isPermission } from "../../domain/permissions.js";
 import { passwordHasher } from "../users/password-hasher.js";
 import { auditRepository } from "../audit/audit.repository.js";
 import { cardsRepository } from "../cards/cards.repository.js";
@@ -166,6 +172,44 @@ const SEED_MEMBERS: SeedMemberInput[] = [
   },
 ];
 
+export interface ImportItemError {
+  entity: string;
+  id: string;
+  code: string;
+}
+
+export interface ImportSummary {
+  imported: {
+    users: number;
+    members: number;
+    cards: number;
+    audit: number;
+    usedIdentifiers: number;
+    settings: number;
+  };
+  skipped: {
+    users: number;
+    members: number;
+    cards: number;
+    audit: number;
+    usedIdentifiers: number;
+    settings: number;
+  };
+  errors: ImportItemError[];
+}
+
+function emptySummary(): ImportSummary {
+  const zero = {
+    users: 0,
+    members: 0,
+    cards: 0,
+    audit: 0,
+    usedIdentifiers: 0,
+    settings: 0,
+  };
+  return { imported: { ...zero }, skipped: { ...zero }, errors: [] };
+}
+
 export const systemService = {
   /** Executa o seed somente quando não há usuários (banco vazio). */
   async seed(
@@ -317,5 +361,174 @@ export const systemService = {
       });
     }
     return { reset: true };
+  },
+
+  /**
+   * Importa um backup v1 do IndexedDB (gerado por `systemService.exportBackup`
+   * no frontend). Idempotente: chaves naturais decidem inserir/pular; rerun do
+   * mesmo arquivo resulta em zero inserções e zero erros. Itens inválidos ou
+   * em conflito vão para `errors` sem abortar o resto.
+   *
+   * Senhas: hashes legados (SHA-256) são preservados como estão e todo usuário
+   * importado recebe `mustChangePassword: true` — a Fase 5 faz o upgrade
+   * transparente para bcrypt no primeiro login.
+   */
+  async importBackup(payload: unknown, db: Db = prisma): Promise<ImportSummary> {
+    const parsed = backupSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new ApiError(400, "INVALID_BACKUP", "Backup inválido.");
+    }
+    const backup: BackupInput = parsed.data;
+    const summary = emptySummary();
+    const now = new Date().toISOString();
+
+    // 1) Usuários — por id (fallback login); sempre mustChangePassword.
+    for (const u of backup.users) {
+      const login = u.login.trim().toLowerCase();
+      const byId = await usersRepository.getById(db, u.id);
+      const byLogin = await usersRepository.getByLogin(db, login);
+      const target = byId ?? (byLogin ?? null);
+      if (target && byId && byLogin && byId.id !== byLogin.id) {
+        summary.errors.push({ entity: "user", id: u.id, code: "LOGIN_ALREADY_EXISTS" });
+        continue;
+      }
+      const data = {
+        name: u.name,
+        login,
+        email: u.email,
+        role: u.role,
+        status: u.status,
+        permissions: u.permissions.filter(isPermission),
+        salt: u.salt,
+        passwordHash: u.passwordHash,
+        mustChangePassword: true,
+        createdAt: u.createdAt ?? now,
+        updatedAt: u.updatedAt ?? now,
+        lastLoginAt: u.lastLoginAt,
+      };
+      if (target) {
+        await usersRepository.update(db, target.id, data);
+        summary.skipped.users++;
+      } else {
+        await usersRepository.create(db, { ...data, id: u.id });
+        summary.imported.users++;
+      }
+    }
+
+    // 2) Configurações — substitui (put).
+    if (backup.settings !== null && typeof backup.settings === "object") {
+      const existed = await db.setting.findUnique({
+        where: { id: "general" },
+        select: { id: true },
+      });
+      await settingsRepository.save(
+        db,
+        mergeWithDefaults(backup.settings as Partial<AppSettings>),
+      );
+      if (existed) summary.skipped.settings++;
+      else summary.imported.settings++;
+    }
+
+    // 3) Associados — por id; conflito com outro id vira erro no item.
+    for (const m of backup.members) {
+      const existing = await membersRepository.getById(db, m.id);
+      if (existing) {
+        const numOwner = await db.member.findUnique({
+          where: { membershipNumber: m.membershipNumber },
+          select: { id: true },
+        });
+        if (numOwner && numOwner.id !== m.id) {
+          summary.errors.push({
+            entity: "member",
+            id: m.id,
+            code: "MEMBERSHIP_NUMBER_TAKEN",
+          });
+          continue;
+        }
+        const codeOwner = await db.member.findUnique({
+          where: { cardCode: m.cardCode },
+          select: { id: true },
+        });
+        if (codeOwner && codeOwner.id !== m.id) {
+          summary.errors.push({ entity: "member", id: m.id, code: "CARD_CODE_TAKEN" });
+          continue;
+        }
+        await membersRepository.update(db, m.id, {
+          ...m,
+          createdAt: m.createdAt ?? now,
+          updatedAt: m.updatedAt ?? now,
+        });
+        summary.skipped.members++;
+        continue;
+      }
+      try {
+        await membersRepository.create(db, {
+          ...m,
+          createdAt: m.createdAt ?? now,
+          updatedAt: m.updatedAt ?? now,
+        });
+        summary.imported.members++;
+      } catch (err) {
+        summary.errors.push({
+          entity: "member",
+          id: m.id,
+          code: err instanceof Error ? err.message : "IMPORT_ERROR",
+        });
+      }
+    }
+
+    // 4) Reserva permanente — idempotente (primeiro registro vence).
+    for (const ident of backup.usedIdentifiers) {
+      const used = await usedIdentifiersRepository.isUsed(db, ident.value);
+      if (used) {
+        summary.skipped.usedIdentifiers++;
+        continue;
+      }
+      await usedIdentifiersRepository.register(db, {
+        ...ident,
+        usedAt: ident.usedAt ?? now,
+      });
+      summary.imported.usedIdentifiers++;
+    }
+
+    // 5) Carteirinhas — mesmo vínculo pula; outro vínculo vira erro.
+    for (const c of backup.cards) {
+      const existing = await db.membershipCard.findFirst({
+        where: { cardCode: c.cardCode, memberId: c.memberId },
+        select: { id: true },
+      });
+      if (existing) {
+        summary.skipped.cards++;
+        continue;
+      }
+      try {
+        await cardsRepository.create(db, {
+          ...c,
+          generatedAt: c.generatedAt ?? now,
+        });
+        summary.imported.cards++;
+      } catch (err) {
+        summary.errors.push({
+          entity: "card",
+          id: c.id,
+          code: err instanceof Error ? err.message : "IMPORT_ERROR",
+        });
+      }
+    }
+
+    // 6) Auditoria — insere pulando ids existentes, história preservada.
+    if (backup.audit.length > 0) {
+      const result = await db.auditLog.createMany({
+        data: backup.audit.map((a) => ({
+          ...a,
+          createdAt: a.createdAt ? new Date(a.createdAt) : new Date(),
+        })),
+        skipDuplicates: true,
+      });
+      summary.imported.audit += result.count;
+      summary.skipped.audit += backup.audit.length - result.count;
+    }
+
+    return summary;
   },
 };

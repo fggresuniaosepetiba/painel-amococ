@@ -158,3 +158,90 @@ export const auditCreateSchema = z.object({
   entityId: z.string().max(120).nullable().default(null),
   details: z.string().max(4000),
 });
+
+// --- Backup v1 (export do IndexedDB) — validação tolerante: desconhecidos
+// são descartados, itens inválidos vão para a lista de erros sem abortar. ---
+
+const backupUserSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().default(""),
+  login: z.string().min(1),
+  email: z.string().default(""),
+  role: z.enum(ROLES).catch("COLABORADOR"),
+  status: z.enum(USER_STATUSES).catch("ATIVO"),
+  permissions: z.array(z.string()).default([]),
+  salt: z.string().default(""),
+  passwordHash: z.string().default(""),
+  mustChangePassword: z.boolean().default(false),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  lastLoginAt: z.string().nullable().default(null),
+});
+
+const backupMemberSchema = z.object({
+  id: z.string().min(1),
+  membershipNumber: z.string().min(1),
+  cardCode: z.string().min(1),
+  fullName: z.string().default(""),
+  cpf: z.string().default(""),
+  birthDate: z.string().default(""),
+  phone: z.string().default(""),
+  whatsapp: z.string().default(""),
+  cep: z.string().default(""),
+  address: z.string().default(""),
+  addressNumber: z.string().default(""),
+  complement: z.string().default(""),
+  district: z.string().default(""),
+  city: z.string().default(""),
+  state: z.string().default(""),
+  photoDataUrl: z.string().nullable().default(null),
+  notes: z.string().default(""),
+  status: z.enum(["ATIVO", "INATIVO"]).catch("ATIVO"),
+  inactivatedAt: z.string().nullable().default(null),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+const backupCardSchema = z.object({
+  id: z.string().min(1),
+  memberId: z.string().min(1),
+  cardCode: z.string().min(1),
+  membershipNumber: z.string().default(""),
+  memberName: z.string().default(""),
+  generatedAt: z.string().optional(),
+  generatedByUserId: z.string().default("system"),
+  generatedByName: z.string().default("sistema"),
+  pngDataUrl: z.string().nullable().default(null),
+  fileSizeBytes: z.number().nullable().default(null),
+});
+
+const backupAuditSchema = z.object({
+  id: z.string().min(1),
+  createdAt: z.string().optional(),
+  userId: z.string().nullable().default(null),
+  userName: z.string().default("sistema"),
+  action: z.string().min(1),
+  entity: z.string().default(""),
+  entityId: z.string().nullable().default(null),
+  details: z.string().default(""),
+});
+
+const backupIdentifierSchema = z.object({
+  value: z.string().min(1),
+  type: z.enum(["membershipNumber", "cardCode"]),
+  usedAt: z.string().optional(),
+  memberId: z.string().nullable().default(null),
+  memberName: z.string().default(""),
+});
+
+export const backupSchema = z.object({
+  version: z.literal(1),
+  users: z.array(backupUserSchema).default([]),
+  members: z.array(backupMemberSchema).default([]),
+  cards: z.array(backupCardSchema).default([]),
+  settings: z.unknown().optional(),
+  audit: z.array(backupAuditSchema).default([]),
+  usedIdentifiers: z.array(backupIdentifierSchema).default([]),
+});
+
+export type BackupInput = z.infer<typeof backupSchema>;
