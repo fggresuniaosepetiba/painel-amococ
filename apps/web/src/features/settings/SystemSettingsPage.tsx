@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Database, Info, MonitorCog, Package, Trash2 } from "lucide-react";
+import { Database, Download, Info, MonitorCog, Package, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -14,6 +14,7 @@ import { db } from "@/db/database";
 import { useAuth } from "@/hooks/AuthProvider";
 import { useToast } from "@/hooks/ToastProvider";
 import { systemService } from "@/services";
+import { authorizationService } from "@/services/authorizationService";
 import {
   APP_ENVIRONMENT,
   APP_FULL_NAME,
@@ -27,9 +28,11 @@ export function SystemSettingsPage() {
   const { user, logout } = useAuth();
   const toast = useToast();
   const isSuperAdmin = user?.role === "SUPERADMIN";
+  const canExport = authorizationService.hasPermission(user ?? null, "settings.view");
   const [armed, setArmed] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const handleFactoryReset = async () => {
     if (busy || confirmText.trim().toUpperCase() !== CONFIRM_WORD) return;
@@ -47,6 +50,22 @@ export function SystemSettingsPage() {
       // A sessão local já não corresponde a nenhum usuário — siga em frente.
     }
     window.location.assign("/login");
+  };
+
+  const handleExportBackup = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const counts = await systemService.exportBackup();
+      toast.success(
+        "Backup exportado",
+        `${counts.members} associados, ${counts.users} usuários e ${counts.audit} registros de auditoria.`
+      );
+    } catch {
+      toast.error("Não foi possível exportar o backup", "Tente novamente.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const counts = useLiveQuery(async () => {
@@ -131,6 +150,36 @@ export function SystemSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {canExport && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Download className="h-4 w-4 text-brand-500" />
+              Exportar backup
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert variant="info" title="Migração para o banco do servidor">
+              Baixa todos os dados locais (associados, usuários, carteirinhas,
+              configurações, auditoria e identificadores) em um arquivo JSON,
+              pronto para importar no PostgreSQL via{" "}
+              <strong className="font-mono">POST /api/system/import</strong>. A
+              base local <strong>não</strong> é alterada.
+            </Alert>
+            <Button
+              type="button"
+              variant="outline"
+              loading={exporting}
+              disabled={exporting}
+              onClick={() => void handleExportBackup()}
+            >
+              {!exporting && <Download className="h-4 w-4" />}
+              {exporting ? "Exportando..." : "Exportar backup (JSON)"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {isSuperAdmin && (
         <Card className="border-red-200">

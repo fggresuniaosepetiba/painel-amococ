@@ -33,3 +33,13 @@ systemRouter.post("/factory-reset", async (_req: Request, res: Response) => {
     sendError(res, err);
   }
 });
+
+systemRouter.post("/import", async (req: Request, res: Response) => {
+  try {
+    res
+      .status(200)
+      .json({ status: "ok", data: await systemService.importBackup(req.body, dbOf(req)) });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
