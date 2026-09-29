@@ -268,8 +268,8 @@ export function UsersPage() {
           mode={dialogMode}
           user={editingUser}
           open
-          onOpenChange={(o) => {
-            if (!o) {
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
               setDialogMode(null);
               setEditingUser(null);
             }
@@ -282,8 +282,8 @@ export function UsersPage() {
         <ResetPasswordDialog
           target={resetUser}
           open
-          onOpenChange={(o) => {
-            if (!o) setResetUser(null);
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setResetUser(null);
           }}
         />
       )}

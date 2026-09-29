@@ -251,8 +251,8 @@ export function CardsPage() {
         <GeneratedCardViewer
           record={viewing}
           open
-          onOpenChange={(o) => {
-            if (!o) setViewing(null);
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setViewing(null);
           }}
         />
       )}

@@ -498,8 +498,8 @@ export function MembersPage() {
       {cardMemberId && user && (
         <CardPreviewDialog
           open
-          onOpenChange={(o) => {
-            if (!o) {
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
               setCardMemberId(null);
               void load();
             }
@@ -513,8 +513,8 @@ export function MembersPage() {
         <DeleteMemberDialog
           member={deleteTarget}
           busy={deleting}
-          onOpenChange={(o) => {
-            if (!o && !deleting) setDeleteTarget(null);
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen && !deleting) setDeleteTarget(null);
           }}
           onConfirm={() => void handleDeleteConfirm()}
         />
