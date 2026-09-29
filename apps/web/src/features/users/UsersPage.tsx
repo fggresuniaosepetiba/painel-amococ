@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLiveQuery } from "dexie-react-hooks";
 import {
   Eye,
   KeyRound,
@@ -12,7 +11,6 @@ import {
   ShieldCheck,
   UserSquare2,
 } from "lucide-react";
-import { db } from "@/db/database";
 import { useAuth } from "@/hooks/AuthProvider";
 import { useToast } from "@/hooks/ToastProvider";
 import { useConfirm } from "@/hooks/ConfirmProvider";
@@ -68,7 +66,19 @@ export function UsersPage() {
   const toast = useToast();
   const confirm = useConfirm();
 
-  const users = useLiveQuery(() => db.users.toArray(), []) ?? [];
+  const [users, setUsers] = useState<User[]>([]);
+
+  const load = useCallback(async () => {
+    try {
+      setUsers(await userService.getAll());
+    } catch {
+      // Mantém a lista atual; erros aparecem nas ações.
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -110,6 +120,7 @@ export function UsersPage() {
     if (!ok) return;
     try {
       await userService.setStatus(actor, target.id, inactivating ? "INATIVO" : "ATIVO");
+      await load();
       toast.success(
         inactivating ? "Usuário inativado" : "Usuário reativado",
         inactivating ? "Login bloqueado." : "Login liberado."
@@ -257,12 +268,13 @@ export function UsersPage() {
           mode={dialogMode}
           user={editingUser}
           open
-          onOpenChange={(o) => {
-            if (!o) {
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
               setDialogMode(null);
               setEditingUser(null);
             }
           }}
+          onSaved={() => void load()}
         />
       )}
 
@@ -270,8 +282,8 @@ export function UsersPage() {
         <ResetPasswordDialog
           target={resetUser}
           open
-          onOpenChange={(o) => {
-            if (!o) setResetUser(null);
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setResetUser(null);
           }}
         />
       )}
@@ -348,11 +360,13 @@ function UserFormDialog({
   user,
   open,
   onOpenChange,
+  onSaved,
 }: {
   mode: "create" | "edit";
   user: User | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
 }) {
   const { user: actor } = useAuth();
   const toast = useToast();
@@ -401,6 +415,7 @@ function UserFormDialog({
         });
         toast.success("Usuário atualizado");
       }
+      onSaved();
       onOpenChange(false);
     } catch (err) {
       const code = err instanceof Error ? err.message : "";

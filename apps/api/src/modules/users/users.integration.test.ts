@@ -101,4 +101,17 @@ describe("usuários", () => {
       `Senha redefinida pelo administrador para "${user.login}"`,
     );
   });
+
+  it("verify (temporário Fase 4): senha certa true, errada e id inexistente false", async () => {
+    const user = await usersService.create(draft, db);
+    expect(await usersService.verifyPassword(user.id, "segredo123", db)).toBe(
+      true,
+    );
+    expect(await usersService.verifyPassword(user.id, "errada", db)).toBe(
+      false,
+    );
+    expect(
+      await usersService.verifyPassword("inexistente", "segredo123", db),
+    ).toBe(false);
+  });
 });

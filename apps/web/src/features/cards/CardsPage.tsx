@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useLiveQuery } from "dexie-react-hooks";
 import {
   CreditCard,
   Download,
@@ -9,7 +8,6 @@ import {
   Search,
   UserPlus,
 } from "lucide-react";
-import { db } from "@/db/database";
 import { useAuth } from "@/hooks/AuthProvider";
 import { useToast } from "@/hooks/ToastProvider";
 import { PageContainer, PageHeader } from "@/components/shared/page";
@@ -43,11 +41,22 @@ export function CardsPage() {
   const [viewing, setViewing] = useState<MembershipCardRecord | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const cards =
-    useLiveQuery(
-      () => db.cards.orderBy("generatedAt").reverse().toArray(),
-      []
-    ) ?? [];
+  const [cards, setCards] = useState<MembershipCardRecord[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const issued = await cardGenerationService.getIssuedCards();
+        if (!cancelled) setCards(issued);
+      } catch {
+        // Mantém a lista atual; erros aparecem nas ações.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -242,8 +251,8 @@ export function CardsPage() {
         <GeneratedCardViewer
           record={viewing}
           open
-          onOpenChange={(o) => {
-            if (!o) setViewing(null);
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setViewing(null);
           }}
         />
       )}

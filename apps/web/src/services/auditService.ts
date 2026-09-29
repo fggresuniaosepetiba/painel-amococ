@@ -33,4 +33,13 @@ export const auditService = {
       // Auditoria nunca deve quebrar o fluxo principal do usuário.
     }
   },
+
+  /** Lista os registros mais recentes (teto de 5000 no repository). */
+  async getAll(): Promise<AuditLog[]> {
+    return auditRepository.getAll();
+  },
+
+  async filterByAction(action: AuditAction): Promise<AuditLog[]> {
+    return auditRepository.filterByAction(action);
+  },
 };

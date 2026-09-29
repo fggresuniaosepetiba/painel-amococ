@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CreditCard,
@@ -8,8 +8,17 @@ import {
   Activity,
   BadgeCheck,
 } from "lucide-react";
-import { db } from "@/db/database";
+import type {
+  AuditLog,
+  Member,
+  MembershipCardRecord,
+} from "@amococ/shared";
 import { useAuth } from "@/hooks/AuthProvider";
+import {
+  auditService,
+  cardGenerationService,
+  memberService,
+} from "@/services";
 import { PageHeader, PageContainer } from "@/components/shared/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,30 +101,46 @@ function KpiCard({
 export function DashboardPage() {
   const { user, hasPermission } = useAuth();
 
-  const stats = useLiveQuery(async () => {
-    const [total, active, inactive, cards] = await Promise.all([
-      db.members.count(),
-      db.members.where("status").equals("ATIVO").count(),
-      db.members.where("status").equals("INATIVO").count(),
-      db.cards.count(),
-    ]);
-    return { total, active, inactive, cards };
+  const [stats, setStats] = useState<
+    { total: number; active: number; inactive: number; cards: number } | undefined
+  >(undefined);
+  const [recentMembers, setRecentMembers] = useState<Member[] | undefined>(
+    undefined
+  );
+  const [recentCards, setRecentCards] = useState<
+    MembershipCardRecord[] | undefined
+  >(undefined);
+  const [recentActivity, setRecentActivity] = useState<AuditLog[] | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [members, cards, activity] = await Promise.all([
+          memberService.getAll(),
+          cardGenerationService.getIssuedCards(),
+          auditService.getAll(),
+        ]);
+        if (cancelled) return;
+        setStats({
+          total: members.length,
+          active: members.filter((m) => m.status === "ATIVO").length,
+          inactive: members.filter((m) => m.status === "INATIVO").length,
+          cards: cards.length,
+        });
+        setRecentMembers(members.slice(0, 5));
+        setRecentCards(cards.slice(0, 5));
+        setRecentActivity(activity.slice(0, 8));
+      } catch {
+        if (!cancelled) setStats({ total: 0, active: 0, inactive: 0, cards: 0 });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  const recentMembers = useLiveQuery(
-    () => db.members.orderBy("createdAt").reverse().limit(5).toArray(),
-    []
-  );
-
-  const recentCards = useLiveQuery(
-    () => db.cards.orderBy("generatedAt").reverse().limit(5).toArray(),
-    []
-  );
-
-  const recentActivity = useLiveQuery(
-    () => db.audit.orderBy("createdAt").reverse().limit(8).toArray(),
-    []
-  );
 
   const loading = !stats;
   const hour = new Date().getHours();

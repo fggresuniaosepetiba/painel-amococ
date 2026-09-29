@@ -8,11 +8,12 @@ import {
   type ReactNode,
 } from "react";
 import type { Permission } from "@amococ/shared";
+import { setActorProvider } from "@/lib/apiClient";
 import {
   authService,
   authorizationService,
-  seedIfEmpty,
   sessionGuard,
+  systemService,
   usedIdentifiersService,
 } from "@/services";
 import type { PublicUser } from "@amococ/shared";
@@ -36,13 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        await seedIfEmpty();
+        // Base mínima no servidor (idempotente) + demo em DEV na 1ª vez.
+        await systemService.seedIfEmpty({ demo: import.meta.env.DEV });
         // Reserva permanente de identificadores: garante que matrículas e
         // códigos de associados de bases legadas já estejam registrados
         // antes de qualquer nova alocação.
         await usedIdentifiersService.backfill();
         const restored = await authService.restoreSession();
-        if (!cancelled) setUser(restored);
+        if (!cancelled) {
+          setActorProvider(() => restored);
+          setUser(restored);
+        }
       } catch {
         if (!cancelled) setUser(null);
       } finally {
@@ -56,12 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (loginName: string, password: string) => {
     const logged = await authService.login(loginName, password);
+    setActorProvider(() => logged);
     setUser(logged);
   }, []);
 
   const logout = useCallback(async () => {
     sessionGuard.stop();
     await authService.logout(user);
+    setActorProvider(() => null);
     setUser(null);
   }, [user]);
 
@@ -74,12 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return sessionGuard.start(() => {
       authService.setSessionNotice("IDLE_TIMEOUT");
       void authService.logout(user); // auditoria: LOGOUT
+      setActorProvider(() => null);
       setUser(null);
     });
   }, [user]);
 
   const refreshUser = useCallback(async () => {
     const restored = await authService.restoreSession();
+    setActorProvider(() => restored);
     setUser(restored);
   }, []);
 

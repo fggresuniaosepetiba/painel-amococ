@@ -1,7 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLiveQuery } from "dexie-react-hooks";
 import { CreditCard, Save } from "lucide-react";
 import { useAuth } from "@/hooks/AuthProvider";
 import { useToast } from "@/hooks/ToastProvider";
@@ -20,14 +19,30 @@ import {
   cardSettingsSchema,
   type CardSettingsFormValues,
 } from "@/schemas/settings";
-import { auditService, settingsService } from "@/services";
+import { settingsService } from "@/services";
+import type { AppSettings } from "@amococ/shared";
 
 export function CardSettingsPage() {
   const { user, hasPermission } = useAuth();
   const toast = useToast();
   const readOnly = !hasPermission("settings.edit");
 
-  const settings = useLiveQuery(() => settingsService.get(), []);
+  const [settings, setSettings] = useState<AppSettings | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const loaded = await settingsService.get();
+        if (!cancelled) setSettings(loaded);
+      } catch {
+        // A tela mostra o erro ao salvar; aqui mantém o esqueleto.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const {
     register,
@@ -62,14 +77,7 @@ export function CardSettingsPage() {
     if (!user) return;
     try {
       await settingsService.updateCard(values);
-      await auditService.log({
-        userId: user.id,
-        userName: user.name,
-        action: "SETTINGS_UPDATED",
-        entity: "settings",
-        entityId: "card",
-        details: "Configurações visuais da carteirinha atualizadas",
-      });
+      // Auditoria SETTINGS_UPDATED registrada no servidor.
       toast.success("Configurações da carteirinha salvas");
       reset(values);
     } catch {

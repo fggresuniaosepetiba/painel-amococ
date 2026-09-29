@@ -10,6 +10,7 @@ import {
   userPermissionsSchema,
   userStatusSchema,
   userUpdateSchema,
+  verifyPasswordSchema,
 } from "../../shared/validation.js";
 import { usersService } from "./users.service.js";
 
@@ -141,6 +142,24 @@ export const usersController = {
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: { reset: true } });
+    } catch (err) {
+      sendError(res, err);
+    }
+  },
+  /**
+   * @deprecated Temporário da Fase 4 — uso exclusivo do authService do frontend.
+   * Remoção obrigatória na Fase 5.
+   */
+  async verify(req: Request, res: Response): Promise<void> {
+    try {
+      const input = parse(res, verifyPasswordSchema, req.body);
+      if (!input) return;
+      const ok = await usersService.verifyPassword(
+        req.params.id!,
+        input.password,
+        dbOf(req),
+      );
+      res.status(200).json({ status: "ok", data: { ok } });
     } catch (err) {
       sendError(res, err);
     }

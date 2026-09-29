@@ -27,7 +27,7 @@ Painel administrativo da **AMOCOC — Associação de Moradores do Conjunto Otac
 | 1 | API + banco + `GET /api/health` | Concluída (`docs/reports/001-fase-1-api-prisma.md`) |
 | 2 | CRUD + geração server-side de matrícula/código + seed | Concluída (`docs/reports/002-fase-2-api-negocio.md`) |
 | 3 | Export IndexedDB + import idempotente | Concluída (`docs/reports/003-fase-3-importacao.md`) |
-| 4 | Frontend consome a API | Planejada (sem spec) |
+| 4 | Frontend consome a API; Dexie removido | Concluída (`docs/reports/004-fase-4-frontend-api.md`) |
 | 5 | Auth JWT + bcrypt + autorização + auditoria server-side | Decisões tomadas (`docs/decisions.md`) |
 | 6 | Testes, CI/CD (GitHub Actions), Docker de produção, deploy da API | Futura |
 
