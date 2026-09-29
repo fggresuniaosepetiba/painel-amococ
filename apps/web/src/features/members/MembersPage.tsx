@@ -1,6 +1,5 @@
-import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CreditCard,
@@ -15,7 +14,6 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { db } from "@/db/database";
 import { useAuth } from "@/hooks/AuthProvider";
 import { useToast } from "@/hooks/ToastProvider";
 import { useConfirm } from "@/hooks/ConfirmProvider";
@@ -52,7 +50,7 @@ import { StatusBadge } from "@/components/shared/badges";
 import { CardPreviewDialog } from "@/features/cards/CardPreviewDialog";
 import { cardGenerationService, memberService } from "@/services";
 import { formatDate, initialsOf } from "@/utils/format";
-import type { Member, MemberStatus } from "@amococ/shared";
+import type { Member, MemberStatus, MembershipCardRecord } from "@amococ/shared";
 import { cn } from "@/utils/cn";
 
 /**
@@ -89,8 +87,25 @@ export function MembersPage() {
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const members = useLiveQuery(() => db.members.toArray(), []) ?? [];
-  const cards = useLiveQuery(() => db.cards.toArray(), []) ?? [];
+  const [members, setMembers] = useState<Member[]>([]);
+  const [cards, setCards] = useState<MembershipCardRecord[]>([]);
+
+  const load = useCallback(async () => {
+    try {
+      const [allMembers, allCards] = await Promise.all([
+        memberService.getAll(),
+        cardGenerationService.getIssuedCards(),
+      ]);
+      setMembers(allMembers);
+      setCards(allCards);
+    } catch {
+      // Mantém a lista atual; erros de rede aparecem nas ações.
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   /** Contadores dinâmicos das abas (nada fixo). */
   const counts = useMemo(
@@ -140,6 +155,7 @@ export function MembersPage() {
     if (!ok) return;
     try {
       await memberService.inactivate(user, member.id);
+      await load();
       toast.success("Associado inativado com sucesso.");
     } catch {
       toast.error("Não foi possível inativar", "Tente novamente em instantes.");
@@ -159,6 +175,7 @@ export function MembersPage() {
     if (!ok) return;
     try {
       await memberService.reactivate(user, member.id);
+      await load();
       toast.success("Associado reativado com sucesso.");
     } catch {
       toast.error("Não foi possível reativar", "Tente novamente em instantes.");
@@ -171,6 +188,7 @@ export function MembersPage() {
     setDeleting(true);
     try {
       await memberService.delete(user, deleteTarget.id);
+      await load();
       toast.success("Associado excluído definitivamente.");
       setDeleteTarget(null);
     } catch (err) {
@@ -481,7 +499,10 @@ export function MembersPage() {
         <CardPreviewDialog
           open
           onOpenChange={(o) => {
-            if (!o) setCardMemberId(null);
+            if (!o) {
+              setCardMemberId(null);
+              void load();
+            }
           }}
           mode="generate"
           memberId={cardMemberId}

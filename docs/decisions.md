@@ -66,10 +66,37 @@ O shared não é compilado; import runtime quebraria `node dist/`. Só `import t
 18 eventos) são espelhos documentados — replicar mudanças do shared.
 
 ## ADR-013 — Semântica do import (Fase 3)
-
 Upsert por chave natural (users: id→login; members: id; cards: cardCode+memberId;
 audit: id via `skipDuplicates`; settings: put; usedIdentifiers: register idempotente).
 Rerun = zero inserções. Itens em conflito vão para `errors` sem abortar. Hashes
 legados preservados + `mustChangePassword: true` em todo usuário importado (upgrade
 bcrypt na Fase 5). A criação de membro já registra a reserva na mesma transação —
 o loop de `usedIdentifiers` só complementa.
+
+## ADR-014 — `/verify` temporário (Fase 4, remover na Fase 5)
+
+`POST /api/users/:id/verify` (`{password}` → `{ok}`, sem dizer o motivo) existe
+só porque o login ainda é client-side e a API nunca expõe `salt`/`passwordHash`.
+Uso exclusivo do `authService`; marcado `@deprecated`. No sucesso, carimba
+`lastLoginAt` (o login atualizava via `users.update` — sem endpoint dedicado,
+o carimbo vive no `/verify`). Remoção obrigatória quando o login passar a JWT.
+
+## ADR-015 — Auditoria tem fonte única: o servidor (Fase 4)
+
+Com os repositories HTTP, manter os `auditService.log` client-side duplicaria
+toda ação (servidor já registra com textos exatos). Removidos do cliente:
+memberService (5), userService (6), saveGeneratedCard (CARD_GENERATED) e telas
+de settings (4). Mantidos no cliente só os eventos sem contraparte servidora:
+LOGIN, LOGOUT, CARD_DOWNLOADED (download lê o PNG local; servidor só tem
+`registerDownload` — não usado pelo fluxo atual).
+
+## ADR-016 — Senhas em texto plano até o repository (Fase 4)
+
+`userService.create/resetPassword` e `authService.changeOwnPassword` passam a
+senha em texto plano ao repository (HTTPS/localhost); hash bcrypt só no
+servidor. `UsersRepository.create` recebe `NewUserInput` (sem id/hash) e
+`update` aceita `newPassword` (roteado a `/reset-password`) — o roteamento por
+formato do patch (`status`→`/status`, `permissions`→`/permissions`) está
+documentado no código. `ApiSettingsRepository.save` grava só as fatias mudadas
+(1 escrita = 1 auditoria); os 3 PATCHs levam os 3 blocos porque o
+`settingsSaveSchema` os exige (servidor grava só a fatia do endpoint).

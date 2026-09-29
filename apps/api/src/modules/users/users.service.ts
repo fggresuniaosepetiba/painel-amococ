@@ -183,4 +183,26 @@ export const usersService = {
       details: `Senha redefinida pelo administrador para "${existing.login}"`,
     });
   },
+  /**
+   * @deprecated Temporário da Fase 4 — uso exclusivo do authService do frontend.
+   * Remoção obrigatória na Fase 5 (login passa a JWT). Nunca revela o motivo:
+   * usuário inexistente e senha errada retornam `false` do mesmo jeito.
+   * No sucesso, atualiza `lastLoginAt` (o login client-side fazia isso via
+   * `users.update` — sem endpoint dedicado, o carimbo vive aqui).
+   */
+  async verifyPassword(
+    id: string,
+    plain: string,
+    db: Db = prisma,
+  ): Promise<boolean> {
+    const existing = await usersRepository.getById(db, id);
+    if (!existing) return false;
+    const ok = await passwordHasher.verify(plain, existing.passwordHash);
+    if (ok) {
+      await usersRepository.update(db, id, {
+        lastLoginAt: new Date().toISOString(),
+      });
+    }
+    return ok;
+  },
 };

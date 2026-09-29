@@ -1,14 +1,13 @@
 /**
- * Composition root dos repositórios.
- * Para migrar para backend, basta substituir as implementações abaixo
- * por classes `Api*Repository` — nenhum service ou componente precisa mudar.
+ * Composition root dos repositórios (Fase 4: implementações HTTP sobre a API).
+ * Nenhum service ou componente precisa mudar — todos dependem só das interfaces.
  */
-import { IndexedDbAuditRepository } from "./indexeddb/AuditRepository";
-import { IndexedDbCardsRepository } from "./indexeddb/CardsRepository";
-import { IndexedDbMembersRepository } from "./indexeddb/MembersRepository";
-import { IndexedDbSettingsRepository } from "./indexeddb/SettingsRepository";
-import { IndexedDbUsedIdentifiersRepository } from "./indexeddb/UsedIdentifiersRepository";
-import { IndexedDbUsersRepository } from "./indexeddb/UsersRepository";
+import { ApiAuditRepository } from "./api/AuditRepository";
+import { ApiCardsRepository } from "./api/CardsRepository";
+import { ApiMembersRepository } from "./api/MembersRepository";
+import { ApiSettingsRepository } from "./api/SettingsRepository";
+import { ApiUsedIdentifiersRepository } from "./api/UsedIdentifiersRepository";
+import { ApiUsersRepository } from "./api/UsersRepository";
 import type {
   AuditRepository,
   CardsRepository,
@@ -18,17 +17,17 @@ import type {
   UsersRepository,
 } from "./types";
 
-export const usersRepository: UsersRepository = new IndexedDbUsersRepository();
+export const usersRepository: UsersRepository = new ApiUsersRepository();
 export const membersRepository: MembersRepository =
-  new IndexedDbMembersRepository();
-export const cardsRepository: CardsRepository = new IndexedDbCardsRepository();
+  new ApiMembersRepository();
+export const cardsRepository: CardsRepository = new ApiCardsRepository();
 export const settingsRepository: SettingsRepository =
-  new IndexedDbSettingsRepository();
-export const auditRepository: AuditRepository = new IndexedDbAuditRepository();
+  new ApiSettingsRepository();
+export const auditRepository: AuditRepository = new ApiAuditRepository();
 export const usedIdentifiersRepository: UsedIdentifiersRepository =
-  new IndexedDbUsedIdentifiersRepository();
+  new ApiUsedIdentifiersRepository();
 
-export { DEFAULT_SETTINGS } from "./indexeddb/SettingsRepository";
+export { DEFAULT_SETTINGS } from "./api/SettingsRepository";
 export type {
   AuditRepository,
   CardsRepository,
