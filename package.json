@@ -6,11 +6,15 @@
   "description": "Painel Administrativo da AMOCOC — Associação de Moradores do Conjunto Otacílio Câmara (monorepo pnpm)",
   "scripts": {
     "dev": "pnpm --filter @amococ/web dev",
+    "dev:api": "pnpm --filter @amococ/api dev",
     "build": "pnpm --filter @amococ/web build",
+    "build:api": "pnpm --filter @amococ/api build",
     "preview": "pnpm --filter @amococ/web preview",
     "typecheck": "pnpm -r typecheck",
     "test": "node scripts/test-security.mjs && node scripts/test-members.mjs && node scripts/verify-order.mjs && node scripts/verify-features.mjs && node scripts/e2e-test.mjs",
-    "test:deploy": "node scripts/verify-deploy-clean.mjs"
+    "test:deploy": "node scripts/verify-deploy-clean.mjs",
+    "db:migrate": "pnpm --filter @amococ/api db:migrate",
+    "db:studio": "pnpm --filter @amococ/api db:studio"
   },
   "devDependencies": {
     "playwright": "^1.63.0"
