@@ -11,7 +11,7 @@
  * TESTE 6 — após exclusão, matrícula e código NÃO são reutilizados
  * TESTE 7 — auditoria registra MEMBER_INACTIVATED/REACTIVATED/DELETED
  *
- * Requer servidor de desenvolvimento rodando (npm run dev).
+ * Requer servidor de desenvolvimento rodando (pnpm dev).
  */
 import { chromium } from "playwright";
 import path from "path";

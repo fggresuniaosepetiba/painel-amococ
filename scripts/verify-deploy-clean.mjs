@@ -3,7 +3,7 @@
  * DEPLOY LIMPO — verifica o estado de PRIMEIRA UTILIZAÇÃO do build de
  * produção (é o que o cliente recebe quando o deploy é feito).
  *
- * Pré-requisito: `npm run build` (usa /dist).
+ * Pré-requisito: `pnpm build` (usa apps/web/dist).
  * O script sobe o `vite preview` na porta 4173 se ninguém estiver lá.
  *
  * TESTE 1 — primeira abertura cria o banco (v2) e roda o seed de produção
@@ -29,6 +29,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
+const APP = path.join(ROOT, "apps", "web");
 const PORT = 4173;
 const BASE = `http://localhost:${PORT}`;
 const OUT = path.resolve(__dirname, "shots");
@@ -150,8 +151,8 @@ async function dbAuditActions() {
 /** Garante o servidor do build de produção (inicia se necessário). */
 let preview = null;
 async function ensurePreview() {
-  if (!fs.existsSync(path.join(ROOT, "dist", "index.html"))) {
-    throw new Error("/dist não encontrado — rode `npm run build` antes.");
+  if (!fs.existsSync(path.join(APP, "dist", "index.html"))) {
+    throw new Error("/dist não encontrado — rode `pnpm build` antes.");
   }
   try {
     const res = await fetch(BASE + "/", { signal: AbortSignal.timeout(2500) });
@@ -159,9 +160,9 @@ async function ensurePreview() {
   } catch {
     /* sobe abaixo */
   }
-  const viteBin = path.join(ROOT, "node_modules", "vite", "bin", "vite.js");
+  const viteBin = path.join(APP, "node_modules", "vite", "bin", "vite.js");
   preview = spawn(process.execPath, [viteBin, "preview", "--port", String(PORT), "--strictPort"], {
-    cwd: ROOT,
+    cwd: APP,
     stdio: "ignore",
   });
   for (let i = 0; i < 80; i++) {

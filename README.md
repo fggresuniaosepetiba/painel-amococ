@@ -38,14 +38,33 @@ Oferecer gestão de:
 
 ---
 
+### Estrutura do repositório (monorepo pnpm — Fase 0)
+
+O projeto é um monorepo com pnpm workspaces (configurado em `pnpm-workspace.yaml`):
+
+```text
+painel-amococ/
+├── apps/web/           # frontend atual (React + Vite) → build em apps/web/dist
+├── packages/shared/    # contratos compartilhados: tipos e permissões de domínio
+├── scripts/            # bateria de testes Playwright (rodam da raiz)
+├── package.json        # scripts raiz: pnpm dev / build / typecheck / test
+├── pnpm-workspace.yaml # definição dos workspaces
+├── tsconfig.base.json  # opções TypeScript comuns (strict)
+└── vercel.json         # build do monorepo + fallback SPA no Vercel
+```
+
+O backend (Express/PostgreSQL) será criado em `apps/api` apenas em fase posterior — hoje **não existe backend**: a persistência continua 100% em IndexedDB.
+
+---
+
 ## 3. Instalação e execução
 
 ```bash
 cd C:\painel-amococ
 
-npm install
+pnpm install
 
-npm run dev
+pnpm dev
 ```
 
 Abra o navegador em `http://localhost:5173`.
@@ -53,11 +72,11 @@ Abra o navegador em `http://localhost:5173`.
 Build de produção:
 
 ```bash
-npm run build     # gera /dist
-npm run preview   # serve o build
+pnpm build     # gera apps/web/dist
+pnpm preview   # serve o build
 ```
 
-> **Deploy (ação manual sua):** suba o conteúdo da pasta `dist/` no servidor/hospedagem estática. O cliente recebe o sistema em **estado de primeira utilização** (§13): SuperAdmin `amococ`/`123` + assinatura oficial já cadastrada e **sem nenhum associado, identificador utilizado, carteirinha ou dado de demonstração**. Verifique antes com `node scripts/verify-deploy-clean.mjs`. **No Vercel**, o fallback SPA já está configurado (`vercel.json` na raiz + cópia em `public/`): deep links como `https://painel-amococ.vercel.app/login` e o F5 em qualquer tela **não dão 404**.
+> **Deploy (ação manual sua):** suba o conteúdo da pasta `apps/web/dist/` no servidor/hospedagem estática. O cliente recebe o sistema em **estado de primeira utilização** (§13): SuperAdmin `amococ`/`123` + assinatura oficial já cadastrada e **sem nenhum associado, identificador utilizado, carteirinha ou dado de demonstração**. Verifique antes com `node scripts/verify-deploy-clean.mjs`. **No Vercel**, o `vercel.json` da raiz já aponta `installCommand`/`buildCommand`/`outputDirectory` para o monorepo (`apps/web/dist`) e mantém o fallback SPA (deep links como `https://painel-amococ.vercel.app/login` e o F5 em qualquer tela **não dão 404**); há cópias de segurança em `apps/web/vercel.json` (caso o *Root Directory* do projeto seja ajustado para `apps/web`) e em `apps/web/public/vercel.json` (deploy manual do dist).
 
 > A aplicação roda **100% local**, sem domínio, sem hospedagem e sem backend remoto.
 
@@ -283,7 +302,7 @@ Todas as rotas internas exigem login; cada área exige a permissão corresponden
 
 ## 17. Testes e verificação (opcional)
 
-Com o servidor de desenvolvimento rodando (`npm run dev`, outra janela):
+Com o servidor de desenvolvimento rodando (`pnpm dev`, outra janela), as 5 suítes principais rodam de uma vez com **`pnpm test`** (e o deploy limpo com **`pnpm test:deploy`**, após `pnpm build`). Individualmente:
 
 ```bash
 # Suíte E2E completa (22 verificações de aceite via Playwright)
@@ -305,7 +324,7 @@ node scripts/test-members.mjs
 # reinicia a contagem; inatividade → logout automático + aviso no /login
 node scripts/test-security.mjs
 
-# Deploy limpo (auto-contido: usa o build em /dist, sobe o `vite preview`
+# Deploy limpo (auto-contido: usa o build em apps/web/dist, sobe o `vite preview`
 # na 4173 se necessário e verifica a PRIMEIRA UTILIZAÇÃO do cliente)
 # — zero associados/identificadores/carteirinhas/auditoria, SuperAdmin
 # + assinatura oficial prontos, abas (0)/(0) e screenshot de revisão

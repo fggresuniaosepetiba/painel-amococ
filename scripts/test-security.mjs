@@ -16,7 +16,7 @@
  * desenvolvimento (sessionGuard.setIdleLimitForTests) — a regra de
  * produção permanece 15 minutos.
  *
- * Requer servidor de desenvolvimento rodando (npm run dev).
+ * Requer servidor de desenvolvimento rodando (pnpm dev).
  */
 import { chromium } from "playwright";
 import path from "path";

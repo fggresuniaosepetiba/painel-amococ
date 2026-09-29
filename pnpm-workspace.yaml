@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  esbuild: set this to true or false
+
+# pnpm 11: configurações do workspace vivem neste arquivo (não mais em package.json).
+# Aprova o script de build do esbuild (binário nativo usado pelo Vite).
+onlyBuiltDependencies:
+  - esbuild
