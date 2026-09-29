@@ -53,7 +53,24 @@ painel-amococ/
 └── vercel.json         # build do monorepo + fallback SPA no Vercel
 ```
 
-O backend (Express/PostgreSQL) será criado em `apps/api` apenas em fase posterior — hoje **não existe backend**: a persistência continua 100% em IndexedDB.
+O backend (Express/PostgreSQL) foi criado em `apps/api` na Fase 1 — hoje expõe **somente** `GET /api/health`. A persistência do frontend continua 100% em IndexedDB até a Fase 4.
+
+---
+
+## Backend local (Fase 1 — API + PostgreSQL)
+
+Pré-requisito: Docker rodando. Copie as variáveis e suba o banco:
+
+```bash
+cp apps/api/.env.example apps/api/.env
+docker compose up -d
+pnpm db:migrate
+pnpm dev:api
+```
+
+- API em `http://localhost:3000` · health em `GET /api/health` (`200 connected` / `503 disconnected` sem banco).
+- Frontend segue em `pnpm dev` (`http://localhost:5173`) e **não consome a API** nesta fase.
+- Produção (Neon): trocar **apenas** a `DATABASE_URL` no ambiente e rodar `pnpm --filter @amococ/api db:deploy`.
 
 ---
 

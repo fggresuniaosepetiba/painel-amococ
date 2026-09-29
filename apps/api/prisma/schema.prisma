@@ -1,0 +1,113 @@
+// Espelha as 6 tabelas do Dexie (apps/web/src/db/database.ts) e os tipos de
+// @amococ/shared. Fase 1 = somente estrutura: unicidades onde o domínio já
+// exige (@unique); imutabilidade, não-reuso e regras de negócio entram na Fase 2.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Usuários e permissões (User em @amococ/shared).
+model User {
+  id                 String    @id
+  name               String
+  login              String    @unique
+  email              String
+  role               String
+  status             String
+  permissions        String[]
+  salt               String
+  passwordHash       String
+  mustChangePassword Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  lastLoginAt        DateTime?
+
+  @@map("users")
+}
+
+// Associados (Member em @amococ/shared). Matrícula e código únicos no banco;
+// imutabilidade e nunca-reutilizar serão garantidas na Fase 2.
+model Member {
+  id               String    @id
+  membershipNumber String    @unique
+  cardCode         String    @unique
+  fullName         String
+  cpf              String
+  birthDate        String
+  phone            String
+  whatsapp         String
+  cep              String
+  address          String
+  addressNumber    String
+  complement       String
+  district         String
+  city             String
+  state            String
+  photoDataUrl     String?   @db.Text
+  notes            String    @default("")
+  status           String
+  inactivatedAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("members")
+}
+
+// Reserva PERMANENTE de identificadores (UsedIdentifier em @amococ/shared).
+// Nunca apagar registros desta tabela — nem na exclusão definitiva (Fase 2).
+model UsedIdentifier {
+  value      String   @id
+  type       String
+  usedAt     DateTime @default(now())
+  memberId   String?
+  memberName String
+
+  @@map("usedIdentifiers")
+}
+
+// Carteirinhas geradas (MembershipCardRecord em @amococ/shared).
+model MembershipCard {
+  id                 String   @id
+  memberId           String
+  cardCode           String
+  membershipNumber   String
+  memberName         String
+  generatedAt        DateTime @default(now())
+  generatedByUserId  String
+  generatedByName    String
+  pngDataUrl         String?  @db.Text
+  fileSizeBytes      Int?
+
+  @@map("cards")
+}
+
+// Auditoria (AuditLog em @amococ/shared). Os 18 eventos (AuditAction) passam
+// a ser validados no servidor na Fase 5; aqui o campo é texto livre.
+model AuditLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String?
+  userName  String
+  action    String
+  entity    String
+  entityId  String?
+  details   String   @db.Text
+
+  @@map("auditLogs")
+}
+
+// Configurações — registro único (id "general"). Os blocos aninhados
+// (association, card, signature, security) vivem no JSON `data` por existir
+// uma única linha; o formato segue AppSettings em @amococ/shared.
+model Setting {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
