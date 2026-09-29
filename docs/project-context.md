@@ -25,7 +25,7 @@ Painel administrativo da **AMOCOC — Associação de Moradores do Conjunto Otac
 |---|---|---|
 | 0 | Monorepo pnpm | Concluída |
 | 1 | API + banco + `GET /api/health` | Concluída (`docs/reports/001-fase-1-api-prisma.md`) |
-| 2 | CRUD + geração server-side de matrícula/código + seed | Próxima |
+| 2 | CRUD + geração server-side de matrícula/código + seed | Concluída (`docs/reports/002-fase-2-api-negocio.md`) |
 | 3 | Export IndexedDB → import idempotente | Planejada (sem spec) |
 | 4 | Frontend consome a API | Planejada (sem spec) |
 | 5 | Auth JWT + bcrypt + autorização + auditoria server-side | Decisões tomadas (`docs/decisions.md`) |
