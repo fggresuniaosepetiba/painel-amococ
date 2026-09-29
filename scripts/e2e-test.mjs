@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BASE = "http://localhost:5173";
-const LOGO = path.resolve(__dirname, "../public/assets/images/logo-amococ.png");
+const LOGO = path.resolve(__dirname, "../apps/web/public/assets/images/logo-amococ.png");
 
 const results = [];
 let page;
