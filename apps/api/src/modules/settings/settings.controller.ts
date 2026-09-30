@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { parseActor } from "../../shared/actor.js";
+import { reqUser } from "../../middlewares/requireAuth.js";
 import { toApiError } from "../../shared/api-error.js";
 import { dbOf } from "../../shared/request-db.js";
 import {
@@ -42,7 +42,7 @@ export const settingsController = {
       }
       const saved = await settingsService.updateAssociation(
         parsed.data.association,
-        parseActor(parsed.data.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: saved });
@@ -67,7 +67,7 @@ export const settingsController = {
       }
       const saved = await settingsService.updateCard(
         parsed.data.card,
-        parseActor(parsed.data.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: saved });
@@ -92,7 +92,7 @@ export const settingsController = {
       }
       const saved = await settingsService.updateSecurity(
         parsed.data.security,
-        parseActor(parsed.data.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: saved });
@@ -114,7 +114,7 @@ export const settingsController = {
       }
       const saved = await settingsService.saveSignature(
         parsed.data,
-        parseActor(parsed.data.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: saved });

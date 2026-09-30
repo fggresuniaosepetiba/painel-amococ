@@ -10,7 +10,8 @@ import { toPublicUser, usersRepository } from "./users.repository.js";
 
 // Serviço de usuários — regras copiadas do frontend (userService.ts):
 // login único (minúsculas), sem auto-inativação, auditoria com textos exatos.
-// Respostas sempre PublicUser (sem salt/hash). Autorização entra na Fase 5.
+// Respostas sempre PublicUser (sem salt/hash). O ator vem do JWT (reqUser);
+// autorização por endpoint vive nos routers (middlewares/requireAuth.ts).
 
 export interface UserCreateInput {
   name: string;
@@ -182,27 +183,5 @@ export const usersService = {
       entityId: id,
       details: `Senha redefinida pelo administrador para "${existing.login}"`,
     });
-  },
-  /**
-   * @deprecated Temporário da Fase 4 — uso exclusivo do authService do frontend.
-   * Remoção obrigatória na Fase 5 (login passa a JWT). Nunca revela o motivo:
-   * usuário inexistente e senha errada retornam `false` do mesmo jeito.
-   * No sucesso, atualiza `lastLoginAt` (o login client-side fazia isso via
-   * `users.update` — sem endpoint dedicado, o carimbo vive aqui).
-   */
-  async verifyPassword(
-    id: string,
-    plain: string,
-    db: Db = prisma,
-  ): Promise<boolean> {
-    const existing = await usersRepository.getById(db, id);
-    if (!existing) return false;
-    const ok = await passwordHasher.verify(plain, existing.passwordHash);
-    if (ok) {
-      await usersRepository.update(db, id, {
-        lastLoginAt: new Date().toISOString(),
-      });
-    }
-    return ok;
   },
 };

@@ -1,4 +1,4 @@
-import { actorBody, api, isNotFound } from "@/lib/apiClient";
+import { api, isNotFound } from "@/lib/apiClient";
 import type { Member, MemberStatus } from "@amococ/shared";
 import type { MembersRepository } from "../types";
 
@@ -49,7 +49,7 @@ export class ApiMembersRepository implements MembersRepository {
     const { id: _id, status: _status, inactivatedAt: _in, createdAt: _c, updatedAt: _u, ...draft } = member;
     return api<Member>("/api/members", {
       method: "POST",
-      body: { ...draft, ...actorBody() },
+      body: { ...draft },
     });
   }
 
@@ -60,13 +60,13 @@ export class ApiMembersRepository implements MembersRepository {
       const action = patch.status === "INATIVO" ? "inactivate" : "reactivate";
       return api<Member>(`/api/members/${id}/${action}`, {
         method: "POST",
-        body: { ...actorBody() },
+        body: {},
       });
     }
     const { id: _id, membershipNumber: _mn, cardCode: _cc, status: _s, inactivatedAt: _in, createdAt: _c, updatedAt: _u, ...personal } = patch;
     return api<Member>(`/api/members/${id}`, {
       method: "PATCH",
-      body: { ...personal, ...actorBody() },
+      body: { ...personal },
     });
   }
 
@@ -74,7 +74,6 @@ export class ApiMembersRepository implements MembersRepository {
   async delete(id: string): Promise<void> {
     await api(`/api/members/${id}`, {
       method: "DELETE",
-      body: { ...actorBody() },
     });
   }
 

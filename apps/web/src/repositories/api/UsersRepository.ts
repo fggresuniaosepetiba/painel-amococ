@@ -1,4 +1,4 @@
-import { actorBody, api, isNotFound } from "@/lib/apiClient";
+import { api, isNotFound } from "@/lib/apiClient";
 import type {
   PublicUser,
   User,
@@ -10,7 +10,7 @@ import type {
   UsersRepository,
 } from "../types";
 
-/** User da API (PublicUser) → User local (sem credenciais — login usa `/verify`). */
+/** User da API (PublicUser) → User local (sem credenciais — login é JWT). */
 function toLocalUser(user: PublicUser): User {
   return { ...user, salt: "", passwordHash: "" };
 }
@@ -41,7 +41,7 @@ export class ApiUsersRepository implements UsersRepository {
     return toLocalUser(
       await api<PublicUser>("/api/users", {
         method: "POST",
-        body: { ...input, ...actorBody() },
+        body: { ...input },
       })
     );
   }
@@ -51,14 +51,14 @@ export class ApiUsersRepository implements UsersRepository {
     if (newPassword !== undefined) {
       await api(`/api/users/${id}/reset-password`, {
         method: "POST",
-        body: { newPassword, ...actorBody() },
+        body: { newPassword },
       });
       return this.getByIdOrThrow(id);
     }
     // Roteamento por formato (services chamam `update` p/ tudo):
     // - só status (+ carimbos) → POST /:id/status
     // - só permissions → PUT /:id/permissions
-    // - só lastLoginAt → relê (servidor carimba no /verify)
+    // - só lastLoginAt → relê (servidor carimba no login)
     // - demais campos → PATCH /:id
     const keys = Object.keys(rest).filter((key) => key !== "updatedAt");
     const only = (...names: string[]) =>
@@ -67,7 +67,7 @@ export class ApiUsersRepository implements UsersRepository {
       return toLocalUser(
         await api<PublicUser>(`/api/users/${id}/status`, {
           method: "POST",
-          body: { status: rest.status as UserStatus, ...actorBody() },
+          body: { status: rest.status as UserStatus },
         })
       );
     }
@@ -75,12 +75,12 @@ export class ApiUsersRepository implements UsersRepository {
       return toLocalUser(
         await api<PublicUser>(`/api/users/${id}/permissions`, {
           method: "PUT",
-          body: { permissions: rest.permissions ?? [], ...actorBody() },
+          body: { permissions: rest.permissions ?? [] },
         })
       );
     }
     if (keys.length === 0 || only("lastLoginAt")) {
-      // Servidor atualiza `lastLoginAt` no `/verify` — só relê.
+      // Servidor carimba `lastLoginAt` no login — só relê.
       return this.getByIdOrThrow(id);
     }
     return toLocalUser(
@@ -93,7 +93,6 @@ export class ApiUsersRepository implements UsersRepository {
           role: rest.role,
           status: rest.status,
           permissions: rest.permissions ?? [],
-          ...actorBody(),
         },
       })
     );

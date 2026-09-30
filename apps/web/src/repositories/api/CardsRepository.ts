@@ -1,4 +1,4 @@
-import { actorBody, api, isNotFound } from "@/lib/apiClient";
+import { api, isNotFound } from "@/lib/apiClient";
 import type { MembershipCardRecord } from "@amococ/shared";
 import type { CardsRepository } from "../types";
 
@@ -36,7 +36,6 @@ export class ApiCardsRepository implements CardsRepository {
       body: {
         memberId: record.memberId,
         pngDataUrl: record.pngDataUrl,
-        ...actorBody(),
       },
     });
   }

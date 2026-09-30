@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { parseActor } from "../../shared/actor.js";
+import { reqUser } from "../../middlewares/requireAuth.js";
 import { toApiError } from "../../shared/api-error.js";
 import { dbOf } from "../../shared/request-db.js";
 import { memberDraftSchema } from "../../shared/validation.js";
@@ -67,7 +67,7 @@ export const membersController = {
       const member = await membersService.create(
         {
           ...parsed.data,
-          actor: parseActor(parsed.data.actor),
+          actor: reqUser(req),
         },
         dbOf(req),
       );
@@ -91,7 +91,7 @@ export const membersController = {
       const member = await membersService.update(
         req.params.id!,
         parsed.data,
-        parseActor(parsed.data.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: member });
@@ -104,7 +104,7 @@ export const membersController = {
     try {
       const member = await membersService.inactivate(
         req.params.id!,
-        parseActor((req.body as { actor?: unknown } | undefined)?.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: member });
@@ -117,7 +117,7 @@ export const membersController = {
     try {
       const member = await membersService.reactivate(
         req.params.id!,
-        parseActor((req.body as { actor?: unknown } | undefined)?.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: member });
@@ -130,7 +130,7 @@ export const membersController = {
     try {
       await membersService.delete(
         req.params.id!,
-        parseActor((req.body as { actor?: unknown } | undefined)?.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: { deleted: true } });
