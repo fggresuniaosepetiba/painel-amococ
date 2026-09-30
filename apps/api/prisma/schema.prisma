@@ -1,6 +1,7 @@
-// Espelha as 6 tabelas do Dexie (apps/web/src/db/database.ts) e os tipos de
+// Espelha as tabelas do domínio (antes Dexie, agora PostgreSQL) e os tipos de
 // @amococ/shared. Fase 1 = somente estrutura: unicidades onde o domínio já
 // exige (@unique); imutabilidade, não-reuso e regras de negócio entram na Fase 2.
+// Fase 5 adiciona `Session` (refresh tokens opacos).
 
 generator client {
   provider = "prisma-client-js"
@@ -99,6 +100,20 @@ model AuditLog {
   details   String   @db.Text
 
   @@map("auditLogs")
+}
+
+// Sessões — refresh tokens opacos (Fase 5, ADR-005). Guarda-se só o SHA-256
+// do refresh (`refreshHash` único); o token puro nunca é persistido.
+// Access JWT é stateless (15 min); revogação acontece via refresh.
+model Session {
+  id          String    @id
+  userId      String
+  refreshHash String    @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("sessions")
 }
 
 // Configurações — registro único (id "general"). Os blocos aninhados

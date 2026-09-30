@@ -334,9 +334,9 @@ export const systemService = {
   },
 
   /**
-   * LIMPAR: zera TODA a base e restaura a primeira utilização (demo NÃO volta).
-   * Auditoria zerada; registra a própria ação. Quem chama deve encerrar a
-   * sessão em seguida (Fase 5 cuidará disso no servidor).
+   * LIMPAR: zera TODA a base (inclui sessões — tokens anteriores morrem) e
+   * restaura a primeira utilização (demo NÃO volta). Auditoria zerada;
+   * registra a própria ação. Quem chama deve encerrar a sessão em seguida.
    */
   async factoryReset(db: Db = prisma): Promise<{ reset: boolean }> {
     await db.$transaction([
@@ -344,6 +344,7 @@ export const systemService = {
       db.membershipCard.deleteMany(),
       db.member.deleteMany(),
       db.setting.deleteMany(),
+      db.session.deleteMany(),
       db.user.deleteMany(),
       db.usedIdentifier.deleteMany(),
     ]);

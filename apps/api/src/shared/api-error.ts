@@ -15,7 +15,7 @@ export class ApiError extends Error {
   }
 }
 
-/** Códigos de domínio → status HTTP (fase 2; autorização entra na Fase 5). */
+/** Códigos de domínio → status HTTP (autorização: middlewares lançam ApiError direto). */
 const STATUS_BY_CODE: Record<string, number> = {
   MEMBER_NOT_FOUND: 404,
   USER_NOT_FOUND: 404,

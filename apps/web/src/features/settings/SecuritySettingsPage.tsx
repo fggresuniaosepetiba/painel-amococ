@@ -71,13 +71,10 @@ export function SecuritySettingsPage() {
     if (!user) return;
     try {
       await authService.changeOwnPassword(
-        user,
         values.currentPassword,
         values.newPassword
       );
-      await settingsService.updateSecurity({
-        lastPasswordChangeAt: new Date().toISOString(),
-      });
+      // O servidor carimba `security.lastPasswordChangeAt` na troca.
       await refreshUser();
       try {
         setSettings(await settingsService.get());

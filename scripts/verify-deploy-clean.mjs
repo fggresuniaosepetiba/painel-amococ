@@ -3,21 +3,27 @@
  * DEPLOY LIMPO — verifica o estado de PRIMEIRA UTILIZAÇÃO do build de
  * produção (é o que o cliente recebe quando o deploy é feito).
  *
- * Pré-requisito: `pnpm build` (usa apps/web/dist).
+ * Pré-requisito: `pnpm build` (usa apps/web/dist) + API no ar.
  * O script sobe o `vite preview` na porta 4173 se ninguém estiver lá.
  *
- * TESTE 1 — primeira abertura cria o banco (v2) e roda o seed de produção
- * TESTE 2 — base ZERO: users=1, settings=1, members=0,
- *           usedIdentifiers=0, cards=0, audit=0
- * TESTE 3 — assinatura oficial pré-cadastrada (PNG transparente, processado
- *           como o envio pela tela)
+ * Era API (Fases 4–5): sem IndexedDB — o estado é verificado via HTTP
+ * contra a API (com JWT de SuperAdmin) e via UI. Preparação: restaura o
+ * estado de fábrica via `POST /api/system/factory-reset` (qualquer sujeira
+ * de baterias anteriores é limpa aqui; a senha do amococ pode ser `123`
+ * ou a da bateria e2e).
+ *
+ * TESTE 1 — primeira abertura: preview no ar + tela de login visível +
+ *           base em estado de fábrica (só amococ)
+ * TESTE 2 — base ZERO via API: users=[amococ], settings=1, members=0,
+ *           usedIdentifiers=0, cards=0
+ * TESTE 3 — assinatura oficial pré-cadastrada (PNG, mime image/png)
  * TESTE 4 — login do SuperAdmin (amococ/123) funciona
  * TESTE 5 — Associados: abas ATIVOS (0) e INATIVOS (0)
  * TESTE 6 — Carteirinhas: nenhuma emitida
  * TESTE 7 — Tela de Assinatura: ASSINATURA CONFIGURADA + prévia visível
  *           (trocar/arrastar/remover seguem liberados na própria tela)
- * TESTE 8 — após navegar: contagens seguem zero e a auditoria só tem o
- *           LOGIN real (nenhum registro de demonstração)
+ * TESTE 8 — após navegar: contagens seguem zero e a auditoria só tem
+ *           LOGIN real (+ SYSTEM_FACTORY_RESET da preparação)
  *
  * Screenshots: scripts/shots/deploy-0{1,2,3}-*.png
  */
@@ -32,6 +38,7 @@ const ROOT = path.resolve(__dirname, "..");
 const APP = path.join(ROOT, "apps", "web");
 const PORT = 4173;
 const BASE = `http://localhost:${PORT}`;
+const API = "http://localhost:3000";
 const OUT = path.resolve(__dirname, "shots");
 
 const results = [];
@@ -57,95 +64,44 @@ async function step(name, fn) {
   }
 }
 
-/** Leitura direta das contagens da IndexedDB (somente leitura). */
-async function dbCounts() {
-  return page.evaluate(
-    () =>
-      new Promise((resolve, reject) => {
-        const req = indexedDB.open("amococ_db");
-        req.onerror = () => reject(new Error("Falha ao abrir amococ_db"));
-        req.onsuccess = () => {
-          const idb = req.result;
-          const names = ["users", "members", "cards", "settings", "audit", "usedIdentifiers"];
-          const out = {};
-          let pending = names.length;
-          let closed = false;
-          const done = () => {
-            if (--pending === 0 && !closed) {
-              closed = true;
-              idb.close();
-              resolve(out);
-            }
-          };
-          for (const name of names) {
-            try {
-              const r = idb.transaction(name, "readonly").objectStore(name).count();
-              r.onsuccess = () => {
-                out[name] = r.result;
-                done();
-              };
-              r.onerror = () => {
-                if (!closed) {
-                  closed = true;
-                  idb.close();
-                  reject(new Error("count " + name));
-                }
-              };
-            } catch (e) {
-              if (!closed) {
-                closed = true;
-                idb.close();
-                reject(e);
-              }
-            }
-          }
-        };
-      })
-  );
+/** HTTP contra a API (mesmo envelope {status, data} do apiClient). */
+async function api(pathname, { method = "GET", body, token } = {}) {
+  const res = await fetch(API + pathname, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || json?.status === "error") {
+    throw new Error(
+      `${method} ${pathname} → HTTP ${res.status} (${json?.code ?? "?"}) ${json?.message ?? ""}`
+    );
+  }
+  return json.data;
 }
 
-async function dbSignature() {
-  return page.evaluate(
-    () =>
-      new Promise((resolve, reject) => {
-        const req = indexedDB.open("amococ_db");
-        req.onerror = () => reject(new Error("Falha ao abrir amococ_db"));
-        req.onsuccess = () => {
-          const idb = req.result;
-          const r = idb.transaction("settings", "readonly").objectStore("settings").get("general");
-          r.onsuccess = () => {
-            idb.close();
-            resolve(r.result ? r.result.signature : null);
-          };
-          r.onerror = () => {
-            idb.close();
-            reject(new Error("get settings"));
-          };
-        };
-      })
-  );
-}
-
-async function dbAuditActions() {
-  return page.evaluate(
-    () =>
-      new Promise((resolve, reject) => {
-        const req = indexedDB.open("amococ_db");
-        req.onerror = () => reject(new Error("Falha ao abrir amococ_db"));
-        req.onsuccess = () => {
-          const idb = req.result;
-          const r = idb.transaction("audit", "readonly").objectStore("audit").getAll();
-          r.onsuccess = () => {
-            idb.close();
-            resolve((r.result || []).map((row) => row.action));
-          };
-          r.onerror = () => {
-            idb.close();
-            reject(new Error("getAll audit"));
-          };
-        };
-      })
-  );
+async function loginSuperAdmin() {
+  // A bateria e2e troca a senha do amococ; tenta as conhecidas.
+  for (const password of ["123", "NovaSenha!2026"]) {
+    try {
+      const data = await api("/api/auth/login", {
+        method: "POST",
+        body: { login: "amococ", password },
+      });
+      return data;
+    } catch {
+      /* próxima */
+    }
+  }
+  // Base sem amococ (vazia): seed de produção cria amococ/123.
+  await api("/api/system/seed", { method: "POST", body: { demo: false } });
+  return api("/api/auth/login", {
+    method: "POST",
+    body: { login: "amococ", password: "123" },
+  });
 }
 
 /** Garante o servidor do build de produção (inicia se necessário). */
@@ -181,49 +137,55 @@ const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 page = await context.newPage();
 
+let token = null;
+
 try {
   await ensurePreview();
 
+  // Preparação: estado de fábrica (limpa qualquer sujeira de baterias).
+  const session = await loginSuperAdmin();
+  await api("/api/system/factory-reset", { method: "POST", token: session.accessToken });
+  const relogin = await api("/api/auth/login", {
+    method: "POST",
+    body: { login: "amococ", password: "123" },
+  });
+  token = relogin.accessToken;
+
   console.log("\n== TESTE 1 ==");
-  await step("TESTE 1 — primeira abertura cria banco (v2) e roda o seed de produção", async () => {
+  await step("TESTE 1 — primeira abertura: login visível + base em estado de fábrica", async () => {
     await page.goto(BASE + "/login", { waitUntil: "networkidle" });
-    await page.waitForFunction(
-      async () => {
-        const dbs = await indexedDB.databases();
-        const d = (dbs || []).find((x) => x.name === "amococ_db");
-        return Boolean(d && d.version >= 2);
-      },
-      { timeout: 15000 }
-    );
-    // seed concluído quando SuperAdmin (1) e configurações (1) existem
-    let seeded = false;
-    for (let i = 0; i < 80; i++) {
-      const c = await dbCounts();
-      if (c.users === 1 && c.settings === 1) {
-        seeded = true;
-        break;
-      }
-      await page.waitForTimeout(250);
+    await page.getByText("Acesse o painel").first().waitFor({ timeout: 15000 });
+    const users = await api("/api/users", { token });
+    if (users.length !== 1 || users[0].login !== "amococ") {
+      throw new Error(`users inesperados: ${JSON.stringify(users.map((u) => u.login))}`);
     }
-    if (!seeded) throw new Error("seed não concluiu (users/settings)");
   });
 
   console.log("\n== TESTE 2 ==");
   await step(
     "TESTE 2 — base ZERO: sem associados, códigos usados, carteirinhas ou auditoria",
     async () => {
-      const counts = await dbCounts();
-      const expect = {
-        users: 1,
-        settings: 1,
-        members: 0,
-        usedIdentifiers: 0,
-        cards: 0,
-        audit: 0,
-      };
-      for (const [key, value] of Object.entries(expect)) {
-        if (counts[key] !== value) {
-          throw new Error(`${key}=${counts[key]} (esperado ${value}) — ${JSON.stringify(counts)}`);
+      const [users, members, cards, identifiers, audit] = await Promise.all([
+        api("/api/users", { token }),
+        api("/api/members", { token }),
+        api("/api/cards", { token }),
+        api("/api/used-identifiers", { token }),
+        api("/api/audit?limit=100", { token }),
+      ]);
+      const checks = [
+        ["users", users.length, 1],
+        ["members", members.length, 0],
+        ["cards", cards.length, 0],
+        ["usedIdentifiers", identifiers.length, 0],
+      ];
+      for (const [key, got, want] of checks) {
+        if (got !== want) throw new Error(`${key}=${got} (esperado ${want})`);
+      }
+      // Só o reset da preparação + o login acima.
+      const actions = audit.map((row) => row.action).sort();
+      for (const action of actions) {
+        if (action !== "LOGIN" && action !== "SYSTEM_FACTORY_RESET") {
+          throw new Error(`ação inesperada: ${action}`);
         }
       }
     }
@@ -231,7 +193,8 @@ try {
 
   console.log("\n== TESTE 3 ==");
   await step("TESTE 3 — assinatura oficial pré-cadastrada (PNG, processada como o envio)", async () => {
-    const sig = await dbSignature();
+    const settings = await api("/api/settings", { token });
+    const sig = settings.signature;
     if (!sig || !sig.imageDataUrl) throw new Error("assinatura ausente nas configurações");
     if (!sig.imageDataUrl.startsWith("data:image/png")) {
       throw new Error(`tipo inesperado: ${sig.imageDataUrl.slice(0, 40)}`);
@@ -281,16 +244,27 @@ try {
   await step(
     "TESTE 8 — após navegar: contagens zeradas e auditoria só com LOGIN real",
     async () => {
-      const counts = await dbCounts();
-      if (counts.members !== 0 || counts.usedIdentifiers !== 0 || counts.cards !== 0) {
+      const fresh = await api("/api/auth/login", {
+        method: "POST",
+        body: { login: "amococ", password: "123" },
+      });
+      const [members, cards, identifiers, audit] = await Promise.all([
+        api("/api/members", { token: fresh.accessToken }),
+        api("/api/cards", { token: fresh.accessToken }),
+        api("/api/used-identifiers", { token: fresh.accessToken }),
+        api("/api/audit?limit=100", { token: fresh.accessToken }),
+      ]);
+      if (members.length !== 0 || identifiers.length !== 0 || cards.length !== 0) {
         throw new Error(
-          `members=${counts.members} usedIdentifiers=${counts.usedIdentifiers} cards=${counts.cards}`
+          `members=${members.length} usedIdentifiers=${identifiers.length} cards=${cards.length}`
         );
       }
-      const actions = await dbAuditActions();
-      const unexpected = actions.filter((a) => a !== "LOGIN");
+      const actions = audit.map((row) => row.action);
+      const unexpected = actions.filter(
+        (a) => a !== "LOGIN" && a !== "SYSTEM_FACTORY_RESET"
+      );
       if (unexpected.length) throw new Error(`ações inesperadas: ${unexpected.join(", ")}`);
-      if (actions.length < 1) throw new Error("evento de LOGIN não registrado");
+      if (!actions.includes("LOGIN")) throw new Error("evento de LOGIN não registrado");
     }
   );
 } catch (err) {

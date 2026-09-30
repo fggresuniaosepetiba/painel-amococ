@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFound } from "./middlewares/notFound.js";
 import { auditRouter } from "./modules/audit/audit.routes.js";
+import { authRouter } from "./modules/auth/auth.routes.js";
 import { cardsRouter } from "./modules/cards/cards.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import { membersRouter } from "./modules/members/members.routes.js";
@@ -25,6 +26,9 @@ export function createApp(client: PrismaClient = prisma) {
   app.use(express.json({ limit: "10mb" }));
 
   app.use("/api", healthRouter);
+  // Auth: login/refresh/logout públicos (rate-limit no login); me e
+  // change-password exigem Bearer (definidos no authRouter).
+  app.use("/api/auth", authRouter);
   app.use("/api/members", membersRouter);
   app.use("/api/users", usersRouter);
   app.use("/api/cards", cardsRouter);

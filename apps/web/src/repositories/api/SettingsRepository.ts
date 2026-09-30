@@ -1,4 +1,4 @@
-import { actorBody, api } from "@/lib/apiClient";
+import { api } from "@/lib/apiClient";
 import type {
   AppSettings,
   SignatureSettings,
@@ -65,7 +65,6 @@ export class ApiSettingsRepository implements SettingsRepository {
    * leva os 3 blocos — o servidor grava só a fatia do endpoint.
    */
   async save(settings: AppSettings): Promise<AppSettings> {
-    const actor = actorBody();
     const current = await this.get();
     const changed = (a: unknown, b: unknown) =>
       JSON.stringify(a) !== JSON.stringify(b);
@@ -77,19 +76,19 @@ export class ApiSettingsRepository implements SettingsRepository {
     if (changed(settings.association, current.association)) {
       await api("/api/settings/association", {
         method: "PATCH",
-        body: { ...blocks, ...actor },
+        body: { ...blocks },
       });
     }
     if (changed(settings.card, current.card)) {
       await api("/api/settings/card", {
         method: "PATCH",
-        body: { ...blocks, ...actor },
+        body: { ...blocks },
       });
     }
     if (changed(settings.security, current.security)) {
       await api("/api/settings/security", {
         method: "PATCH",
-        body: { ...blocks, ...actor },
+        body: { ...blocks },
       });
     }
     if (changed(settings.signature, current.signature)) {
@@ -101,7 +100,6 @@ export class ApiSettingsRepository implements SettingsRepository {
           presidentTitle: signature.presidentTitle,
           imageDataUrl: signature.imageDataUrl,
           mimeType: signature.mimeType,
-          ...actor,
         },
       });
     }
