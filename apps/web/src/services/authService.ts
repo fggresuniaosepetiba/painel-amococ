@@ -1,16 +1,10 @@
-import {
-  SESSION_DURATION_DAYS,
-  SESSION_NOTICE_KEY,
-  SESSION_STORAGE_KEY,
-} from "@/constants";
-import { usersRepository } from "@/repositories";
-import { api } from "@/lib/apiClient";
-import type { PublicUser, SessionInfo, User } from "@amococ/shared";
-import { auditService } from "./auditService";
+import { SESSION_NOTICE_KEY, SESSION_STORAGE_KEY } from "@/constants";
+import { api, isUnauthorized } from "@/lib/apiClient";
+import type { PublicUser } from "@amococ/shared";
 import { authorizationService } from "./authorizationService";
 
-/** Motivos de encerramento automático exibidos na tela de login. */
-export type SessionNotice = "IDLE_TIMEOUT";
+/** Motivos de encerramento exibidos na tela de login. */
+export type SessionNotice = "IDLE_TIMEOUT" | "SESSION_EXPIRED";
 
 export class AuthError extends Error {
   constructor(
@@ -25,133 +19,165 @@ export class AuthError extends Error {
   }
 }
 
-function toPublicUser(user: User): PublicUser {
-  const { salt: _salt, passwordHash: _hash, ...rest } = user;
-  return rest;
+/** Par de tokens + usuário retornado pelo login/refresh (Fase 5, JWT). */
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  user: PublicUser;
 }
 
-function readSession(): SessionInfo | null {
+/** Sessão persistida (só sessionStorage — nunca localStorage). */
+interface StoredSession {
+  accessToken: string;
+  refreshToken: string;
+  user: PublicUser;
+}
+
+function readStoredSession(): StoredSession | null {
   try {
     // REGRA OBRIGATÓRIA (LGPD): a sessão é POR ABA (sessionStorage) —
     // fechar a aba encerra a sessão e a próxima abertura exige login.
     // Sessões antigas em localStorage (legado) são descartadas aqui.
+    // Formatos antigos (SessionInfo pre-Fase-5) são descartados.
     localStorage.removeItem(SESSION_STORAGE_KEY);
     const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as SessionInfo;
-    if (!parsed.userId || !parsed.expiresAt) return null;
-    if (new Date(parsed.expiresAt).getTime() < Date.now()) {
+    const parsed = JSON.parse(raw) as Partial<StoredSession>;
+    if (
+      typeof parsed.accessToken !== "string" ||
+      typeof parsed.refreshToken !== "string" ||
+      typeof parsed.user?.id !== "string"
+    ) {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
       return null;
     }
-    return parsed;
+    return parsed as StoredSession;
   } catch {
     return null;
   }
 }
 
-function writeSession(userId: string): SessionInfo {
-  const issuedAt = new Date();
-  const expiresAt = new Date(
-    issuedAt.getTime() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000
-  );
-  const session: SessionInfo = {
-    userId,
-    issuedAt: issuedAt.toISOString(),
-    expiresAt: expiresAt.toISOString(),
-  };
+function writeStoredSession(session: StoredSession): void {
   sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-  return session;
 }
 
 /**
- * Autenticação local (prototipagem).
- * A versão de produção terá autenticação validada no servidor.
+ * Autenticação por JWT (Fase 5).
+ * O servidor valida credenciais, permissões (por endpoint) e auditoria
+ * (LOGIN/LOGOUT registrados lá — fonte única, ADR-015).
  *
  * REGRAS OBRIGATÓRIAS DE SESSÃO (LGPD):
- * 1. A sessão vive em `sessionStorage` (escopo de ABA): fechar a aba
+ * 1. Tokens vivem em `sessionStorage` (escopo de ABA): fechar a aba
  *    encerra a sessão e a próxima abertura exige login novamente.
  * 2. Após 15 MINUTOS de inatividade a sessão é encerrada automaticamente
  *    (ver `sessionGuard`), com aviso explicativo exibido em /login.
+ * 3. Access expira em 15 min; o refresh (opaco, 7 dias) o renova
+ *    silenciosamente. 401 irrecuperável = logout + aviso em /login.
  */
 export const authService = {
-  toPublicUser,
-
-  async login(login: string, password: string): Promise<PublicUser> {
-    const normalizedLogin = login.trim().toLowerCase();
-    const user = await usersRepository.getByLogin(normalizedLogin);
-    if (!user) {
-      throw new AuthError(
-        "Usuário ou senha incorretos. Verifique os dados e tente novamente.",
-        "INVALID_CREDENTIALS"
-      );
-    }
-    // Senha conferida no servidor (endpoint temporário — remoção na Fase 5).
-    // Não revela o motivo: inexistente e errada caem no mesmo erro genérico.
-    const { ok } = await api<{ ok: boolean }>(`/api/users/${user.id}/verify`, {
-      method: "POST",
-      body: { password },
-    });
-    if (!ok) {
-      throw new AuthError(
-        "Usuário ou senha incorretos. Verifique os dados e tente novamente.",
-        "INVALID_CREDENTIALS"
-      );
-    }
-    if (user.status !== "ATIVO") {
-      throw new AuthError(
-        "Este usuário está inativo. Procure o administrador do sistema.",
-        "INACTIVE_USER"
-      );
-    }
-    // O /verify atualizou o lastLoginAt no servidor — relê o registro.
-    const updated = (await usersRepository.getById(user.id)) ?? user;
-    sessionStorage.removeItem(SESSION_NOTICE_KEY); // não herda aviso antigo
-    writeSession(updated.id);
-    await auditService.log({
-      userId: updated.id,
-      userName: updated.name,
-      action: "LOGIN",
-      entity: "user",
-      entityId: updated.id,
-      details: `Login realizado por ${updated.login}`,
-    });
-    return toPublicUser(updated);
-  },
-
-  async restoreSession(): Promise<PublicUser | null> {
-    const session = readSession();
-    if (!session) return null;
-    const user = await usersRepository.getById(session.userId);
-    if (!user || user.status !== "ATIVO") {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
-      return null;
-    }
-    return toPublicUser(user);
-  },
-
-  getSessionInfo(): SessionInfo | null {
-    return readSession();
-  },
-
-  async logout(user: PublicUser | null): Promise<void> {
-    if (user) {
-      await auditService.log({
-        userId: user.id,
-        userName: user.name,
-        action: "LOGOUT",
-        entity: "user",
-        entityId: user.id,
-        details: `Sessão encerrada por ${user.login}`,
-      });
-    }
-    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  /** Access atual para o `Authorization: Bearer` (via apiClient). */
+  getAccessToken(): string | null {
+    return readStoredSession()?.accessToken ?? null;
   },
 
   /**
-   * Registra o motivo de um encerramento AUTOMÁTICO da sessão (ex.:
-   * inatividade por 15 minutos). A tela de login lê e limpa esse aviso
-   * para explicar ao usuário por que ele foi desconectado.
+   * Renova o par via refresh (chamado pelo apiClient em 401).
+   * Retorna o novo access ou `null` (sessão morta — já limpa).
+   */
+  async refreshTokens(): Promise<string | null> {
+    const stored = readStoredSession();
+    if (!stored) return null;
+    try {
+      const data = await api<LoginResponse>("/api/auth/refresh", {
+        method: "POST",
+        auth: "none",
+        body: { refreshToken: stored.refreshToken },
+      });
+      writeStoredSession({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        user: data.user,
+      });
+      return data.accessToken;
+    } catch {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+  },
+
+  /** Limpa a sessão local. Retorna se havia sessão (p/ decidir o aviso). */
+  clearSession(): boolean {
+    const had = readStoredSession() !== null;
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    return had;
+  },
+
+  async login(login: string, password: string): Promise<PublicUser> {
+    let data: LoginResponse;
+    try {
+      data = await api<LoginResponse>("/api/auth/login", {
+        method: "POST",
+        auth: "none",
+        body: { login: login.trim().toLowerCase(), password },
+      });
+    } catch (err) {
+      // Mensagem única §14 (servidor não distingue motivo — nem INATIVO).
+      if (isUnauthorized(err)) {
+        throw new AuthError(
+          "Usuário ou senha incorretos. Verifique os dados e tente novamente.",
+          "INVALID_CREDENTIALS"
+        );
+      }
+      throw err;
+    }
+    sessionStorage.removeItem(SESSION_NOTICE_KEY); // não herda aviso antigo
+    writeStoredSession({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      user: data.user,
+    });
+    return data.user;
+  },
+
+  /**
+   * Restaura a sessão da aba (boot/refresh): valida no servidor (`/me`,
+   * que passa pelo refresh silencioso do apiClient) e devolve o usuário
+   * atualizado. Falha = sessão morta (já limpa) → `null`.
+   */
+  async restoreSession(): Promise<PublicUser | null> {
+    if (!readStoredSession()) return null;
+    try {
+      const user = await api<PublicUser>("/api/auth/me");
+      const stored = readStoredSession();
+      if (stored) writeStoredSession({ ...stored, user });
+      return user;
+    } catch {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+  },
+
+  async logout(): Promise<void> {
+    const stored = readStoredSession();
+    try {
+      // O refresh no corpo é a credencial (cobre access expirado e o
+      // encerramento por inatividade). O servidor audita LOGOUT.
+      await api("/api/auth/logout", {
+        method: "POST",
+        auth: "none",
+        body: { refreshToken: stored?.refreshToken },
+      });
+    } catch {
+      // Logout local sempre acontece, mesmo sem rede/servidor.
+    } finally {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+  },
+
+  /**
+   * Registra o motivo de um encerramento da sessão (inatividade ou 401).
+   * A tela de login lê e limpa esse aviso para explicar o ocorrido.
    */
   setSessionNotice(notice: SessionNotice): void {
     try {
@@ -167,29 +193,33 @@ export const authService = {
       const value = sessionStorage.getItem(SESSION_NOTICE_KEY);
       if (!value) return null;
       sessionStorage.removeItem(SESSION_NOTICE_KEY);
-      return value === "IDLE_TIMEOUT" ? value : null;
+      return value === "IDLE_TIMEOUT" || value === "SESSION_EXPIRED"
+        ? value
+        : null;
     } catch {
       return null;
     }
   },
 
-  /** Altera a senha do próprio usuário autenticado. */
+  /** Altera a senha do próprio usuário autenticado (ator = token). */
   async changeOwnPassword(
-    user: PublicUser,
     currentPassword: string,
     newPassword: string
   ): Promise<void> {
-    const stored = await usersRepository.getById(user.id);
-    if (!stored) throw new AuthError("Usuário não encontrado.", "INVALID_CREDENTIALS");
-    const { ok } = await api<{ ok: boolean }>(`/api/users/${user.id}/verify`, {
-      method: "POST",
-      body: { password: currentPassword },
-    });
-    if (!ok) {
-      throw new AuthError("A senha atual está incorreta.", "INVALID_CREDENTIALS");
+    try {
+      await api("/api/auth/change-password", {
+        method: "POST",
+        body: { currentPassword, newPassword },
+      });
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        err.message === "A senha atual está incorreta."
+      ) {
+        throw new AuthError(err.message, "INVALID_CREDENTIALS");
+      }
+      throw err;
     }
-    // Hash + auditoria PASSWORD_CHANGED no servidor (reset-password).
-    await usersRepository.update(user.id, { newPassword });
   },
 
   authorizationService,

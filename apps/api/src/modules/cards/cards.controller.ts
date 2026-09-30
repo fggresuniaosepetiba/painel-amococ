@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { parseActor } from "../../shared/actor.js";
+import { reqUser } from "../../middlewares/requireAuth.js";
 import { toApiError } from "../../shared/api-error.js";
 import { dbOf } from "../../shared/request-db.js";
 import { ApiError } from "../../shared/api-error.js";
@@ -65,7 +65,7 @@ export const cardsController = {
       const record = await cardsService.generate(
         parsed.data.memberId,
         parsed.data.pngDataUrl,
-        parseActor(parsed.data.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(201).json({ status: "ok", data: record });
@@ -78,7 +78,7 @@ export const cardsController = {
     try {
       const { record, fileName } = await cardsService.registerDownload(
         req.params.id!,
-        parseActor((req.body as { actor?: unknown } | undefined)?.actor),
+        reqUser(req),
         dbOf(req),
       );
       res.status(200).json({ status: "ok", data: { record, fileName } });

@@ -91,7 +91,6 @@ LOGIN, LOGOUT, CARD_DOWNLOADED (download lê o PNG local; servidor só tem
 `registerDownload` — não usado pelo fluxo atual).
 
 ## ADR-016 — Senhas em texto plano até o repository (Fase 4)
-
 `userService.create/resetPassword` e `authService.changeOwnPassword` passam a
 senha em texto plano ao repository (HTTPS/localhost); hash bcrypt só no
 servidor. `UsersRepository.create` recebe `NewUserInput` (sem id/hash) e
@@ -100,3 +99,58 @@ formato do patch (`status`→`/status`, `permissions`→`/permissions`) está
 documentado no código. `ApiSettingsRepository.save` grava só as fatias mudadas
 (1 escrita = 1 auditoria); os 3 PATCHs levam os 3 blocos porque o
 `settingsSaveSchema` os exige (servidor grava só a fatia do endpoint).
+
+## ADR-017 — Sessões JWT + refresh opaco (Fase 5)
+
+Access JWT HS256 de 15 min (claims `sub`, `name`, `role`, `permissions`;
+espelha o idle LGPD), stateless — revogação acontece via refresh. Refresh
+opaco (48 bytes aleatórios, 7 dias): no banco vive só o SHA-256
+(`Session.refreshHash` único). Rotação a cada uso; reuso de refresh
+revogado = possível roubo → revoga TODAS as sessões do usuário. Logout
+aceita o refresh no corpo (cobre access expirado e idle); access restante
+vale até 15 min (tradeoff documentado do ADR-005). Segredo em `JWT_SECRET`
+(fallback dev documentado no `.env.example`).
+
+## ADR-018 — Matriz de autorização server-side (Fase 5)
+
+`requireAuth` (Bearer) + `requirePermission(...nomes, semântica OR)` +
+`requireSuperAdmin`, espelho exato do `authorizationService` (SUPERADMIN
+bypass total §6.1). Matriz: members/cards/users/settings por ação (§6, §10),
+`GET /api/audit` → `audit.view`, `POST /api/audit` → só autenticado
+(CARD_DOWNLOADED client-side, sem contraparte servidora), used-identifiers
+consulta → `members.view` OU `members.create`, registro → `members.create`,
+`POST /api/system/seed` público (boot pré-login; `demo` ignorado em
+produção), factory-reset → só SUPERADMIN (mesmo gate da tela), import →
+`settings.edit`. Token carrega permissões (revogação vale no próximo login;
+`/me` devolve o usuário atualizado).
+
+## ADR-019 — Rate-limit sem lockout (Fase 5, §7.7)
+
+`express-rate-limit` no `POST /api/auth/login`: 20 tentativas/15 min por IP
+(`LOGIN_RATE_LIMIT_MAX` configurável; pulado em `NODE_ENV=test` salvo
+override — a suíte faz dezenas de logins do mesmo IP). Lockout por usuário
+**avaliado e descartado** (sem bloqueio: evita negação de serviço contra
+logins conhecidos). 429 com `RATE_LIMITED`, sem indicar campo.
+
+## ADR-020 — Remoções da Fase 5 (fim dos débitos)
+
+Removidos: `actor` de todos os corpos (ator vem do JWT via `reqUser`;
+services mantêm o parâmetro, agora alimentado pelo token), `POST
+/api/users/:id/verify` + `verifyPassword` (débito ADR-014), logs
+client-side de LOGIN/LOGOUT (servidor registra; evita duplicatas —
+ADR-015), chamada separada de `updateSecurity` na troca de senha (o
+endpoint carimba `lastPasswordChangeAt`). INATIVO no login recebe a
+**mesma** mensagem §14 (spec 006, anti-enumeração) — o e2e foi atualizado
+de `"está inativo"` para a mensagem única. `verify-deploy-clean.mjs`
+migrado da era IndexedDB (lendo `amococ_db` inexistente) para a era API
+(prep via factory-reset + asserts HTTP/UI).
+
+## ADR-021 — Infra local: Postgres nativo × Docker (Fase 5)
+
+A máquina voltou com o PostgreSQL 17 nativo ocupando a 5432 e o shell sem
+elevação p/ `net stop` (ADR-006 previa). Fallback sem mudar a spec:
+`docker-compose.yml` aceita `POSTGRES_HOST_PORT` (default 5432) e o
+ambiente local usa 5433 (só `.env`, gitignored). `CORS_ORIGINS` passa a
+incluir `http://localhost:4173` (preview do build, usado pelo
+`test:deploy`). Para voltar ao padrão: `net stop postgresql-x64-17`
+(elevado) + `POSTGRES_HOST_PORT` fora + `.env` na 5432.

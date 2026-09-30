@@ -18,9 +18,8 @@ const phoneField = (label: string) =>
     })
     .default("");
 
-export const actorSchema = z
-  .object({ id: z.string().min(1), name: z.string() })
-  .nullish();
+// Na Fase 5 o ator vem do JWT (middlewares/requireAuth.ts) — nenhum corpo
+// de requisição carrega mais `actor` (fim do ADR-010).
 
 export const memberDraftSchema = z.object({
   fullName: z
@@ -48,7 +47,6 @@ export const memberDraftSchema = z.object({
   // Identificadores opcionais (import/migração): se ausentes, gerados no servidor.
   membershipNumber: z.string().optional(),
   cardCode: z.string().optional(),
-  actor: actorSchema,
 });
 
 export type MemberDraftInput = z.infer<typeof memberDraftSchema>;
@@ -69,14 +67,12 @@ export const userDraftSchema = z.object({
     })
     .default([]),
   initialPassword: z.string().min(1, "Informe a senha inicial."),
-  actor: actorSchema,
 });
 
 export const userUpdateSchema = userDraftSchema.omit({ initialPassword: true });
 
 export const userStatusSchema = z.object({
   status: z.enum(USER_STATUSES),
-  actor: actorSchema,
 });
 
 export const userPermissionsSchema = z.object({
@@ -85,24 +81,31 @@ export const userPermissionsSchema = z.object({
     .refine((list) => list.every(isPermission), {
       message: "Permissão inválida.",
     }),
-  actor: actorSchema,
 });
 
 export const resetPasswordSchema = z.object({
   newPassword: z.string().min(1, "Informe a nova senha."),
-  actor: actorSchema,
 });
 
-// Temporário da Fase 4 (authService do frontend). Remoção obrigatória na Fase 5:
-// o login passa a JWT e este endpoint deixa de existir.
-export const verifyPasswordSchema = z.object({
+// --- Auth (Fase 5): login por JWT + refresh opaco + troca de senha própria. ---
+
+export const loginSchema = z.object({
+  login: nonEmptyTrimmed(80),
   password: z.string().min(1, "Informe a senha."),
+});
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(1, "Refresh ausente."),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Informe a senha atual."),
+  newPassword: z.string().min(8, "A nova senha deve ter pelo menos 8 caracteres."),
 });
 
 export const cardGenerateSchema = z.object({
   memberId: z.string().min(1),
   pngDataUrl: z.string().min(1, "PNG da carteirinha ausente."),
-  actor: actorSchema,
 });
 
 export const settingsSaveSchema = z.object({
@@ -138,7 +141,6 @@ export const settingsSaveSchema = z.object({
   security: z
     .object({ lastPasswordChangeAt: z.string().nullable() })
     .partial(),
-  actor: actorSchema,
 });
 
 export const signatureSaveSchema = z.object({
@@ -146,7 +148,6 @@ export const signatureSaveSchema = z.object({
   presidentTitle: z.string().max(120).optional(),
   imageDataUrl: z.string().nullable().optional(),
   mimeType: z.string().max(80).nullable().optional(),
-  actor: actorSchema,
 });
 
 export const usedIdentifierRegisterSchema = z.object({

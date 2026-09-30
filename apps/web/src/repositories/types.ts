@@ -27,7 +27,7 @@ export interface UsersRepository {
   /**
    * Cria via API (hash bcrypt no servidor). `initialPassword` em texto
    * plano — nunca persistido no cliente; o `User` devolvido não traz
-   * credenciais (salt/hash vazios — o login usa `/verify`, Fase 4).
+   * credenciais (salt/hash vazios — o login é JWT, Fase 5).
    */
   create(input: NewUserInput): Promise<User>;
   /**

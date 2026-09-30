@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Permission } from "@amococ/shared";
-import { setActorProvider } from "@/lib/apiClient";
+import { setAuthHandlers } from "@/lib/apiClient";
 import {
   authService,
   authorizationService,
@@ -33,26 +33,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PublicUser | null>(null);
   const [booting, setBooting] = useState(true);
 
+  // Ponte apiClient ↔ authService (Bearer, refresh em 401, logout em 401
+  // irrecuperável com aviso SESSION_EXPIRED no /login).
+  useEffect(() => {
+    setAuthHandlers({
+      getAccessToken: () => authService.getAccessToken(),
+      refreshAccessToken: () => authService.refreshTokens(),
+      onUnauthorized: () => {
+        if (authService.clearSession()) {
+          authService.setSessionNotice("SESSION_EXPIRED");
+        }
+        sessionGuard.stop();
+        setUser(null);
+      },
+    });
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        // Base mínima no servidor (idempotente) + demo em DEV na 1ª vez.
+        // Base mínima no servidor (rota pública, idempotente).
         await systemService.seedIfEmpty({ demo: import.meta.env.DEV });
-        // Reserva permanente de identificadores: garante que matrículas e
-        // códigos de associados de bases legadas já estejam registrados
-        // antes de qualquer nova alocação.
-        await usedIdentifiersService.backfill();
-        const restored = await authService.restoreSession();
-        if (!cancelled) {
-          setActorProvider(() => restored);
-          setUser(restored);
-        }
       } catch {
-        if (!cancelled) setUser(null);
-      } finally {
-        if (!cancelled) setBooting(false);
+        // Sem API no ar, o boot segue — as chamadas vão falhar com aviso.
       }
+      let restored: PublicUser | null = null;
+      try {
+        // Valida a sessão da aba no servidor (renova o access se preciso).
+        restored = await authService.restoreSession();
+      } catch {
+        restored = null;
+      }
+      if (!cancelled) setUser(restored);
+      if (restored) {
+        try {
+          // Reserva permanente de identificadores (autenticado, tolerante).
+          await usedIdentifiersService.backfill();
+        } catch {
+          // Backfill nunca quebra o boot/login.
+        }
+      }
+      if (!cancelled) setBooting(false);
     })();
     return () => {
       cancelled = true;
@@ -61,34 +83,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (loginName: string, password: string) => {
     const logged = await authService.login(loginName, password);
-    setActorProvider(() => logged);
     setUser(logged);
+    try {
+      await usedIdentifiersService.backfill();
+    } catch {
+      // Backfill nunca quebra o login.
+    }
   }, []);
 
   const logout = useCallback(async () => {
     sessionGuard.stop();
-    await authService.logout(user);
-    setActorProvider(() => null);
+    await authService.logout();
     setUser(null);
-  }, [user]);
+  }, []);
 
   // REGRA OBRIGATÓRIA E PRINCIPAL DE SEGURANÇA (LGPD):
   // 15 minutos de inatividade → LOGOUT AUTOMÁTICO. O motivo fica marcado
   // em sessionStorage para a tela de login explicar o ocorrido, o LOGOUT
-  // é registrado na auditoria e o RequireAuth leva para /login.
+  // é registrado na auditoria (servidor) e o RequireAuth leva para /login.
   useEffect(() => {
     if (!user) return;
     return sessionGuard.start(() => {
       authService.setSessionNotice("IDLE_TIMEOUT");
-      void authService.logout(user); // auditoria: LOGOUT
-      setActorProvider(() => null);
+      void authService.logout();
       setUser(null);
     });
   }, [user]);
 
   const refreshUser = useCallback(async () => {
     const restored = await authService.restoreSession();
-    setActorProvider(() => restored);
     setUser(restored);
   }, []);
 

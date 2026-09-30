@@ -245,7 +245,8 @@ await step("Login de usuário inativo é bloqueado", async () => {
   await page.fill('input[name="login"]', "testeperm");
   await page.fill('input[name="password"]', "1234");
   await page.click('button[type="submit"]');
-  await T("está inativo").waitFor({ timeout: 5000 });
+  // Fase 5 (spec 006): INATIVO recebe a MESMA mensagem única §14 (sem distinguir).
+  await T("Usuário ou senha incorretos.").waitFor({ timeout: 5000 });
   await page.waitForURL("**/login");
 });
 

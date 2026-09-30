@@ -18,6 +18,8 @@ Painel administrativo da **AMOCOC — Associação de Moradores do Conjunto Otac
 
 - **Até a Fase 3:** frontend 100% IndexedDB (Dexie, `amococ_db`). A API não é consumida pelo web.
 - **Fase 4:** frontend passa a consumir a API (troca em `apps/web/src/repositories/index.ts`).
+- **Fase 5:** autenticação JWT + autorização server-side; frontend por token
+  (`apps/web/src/lib/apiClient.ts` + `services/authService.ts`).
 
 ## Fases da migração
 
@@ -28,7 +30,7 @@ Painel administrativo da **AMOCOC — Associação de Moradores do Conjunto Otac
 | 2 | CRUD + geração server-side de matrícula/código + seed | Concluída (`docs/reports/002-fase-2-api-negocio.md`) |
 | 3 | Export IndexedDB + import idempotente | Concluída (`docs/reports/003-fase-3-importacao.md`) |
 | 4 | Frontend consome a API; Dexie removido | Concluída (`docs/reports/004-fase-4-frontend-api.md`) |
-| 5 | Auth JWT + bcrypt + autorização + auditoria server-side | Decisões tomadas (`docs/decisions.md`) |
+| 5 | Auth JWT + bcrypt + autorização + auditoria server-side | Concluída (`docs/reports/005-fase-5-auth.md`) |
 | 6 | Testes, CI/CD (GitHub Actions), Docker de produção, deploy da API | Futura |
 
 ## Regras de documentação

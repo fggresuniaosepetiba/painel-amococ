@@ -26,15 +26,19 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [idleNotice, setIdleNotice] = useState(false);
+  const [expiredNotice, setExpiredNotice] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     login?: string;
     password?: string;
   }>({});
 
-  // Exibe (uma única vez) o motivo de um logout automático por inatividade.
+  // Exibe (uma única vez) o motivo de um encerramento de sessão.
   useEffect(() => {
-    if (authService.consumeSessionNotice() === "IDLE_TIMEOUT") {
+    const notice = authService.consumeSessionNotice();
+    if (notice === "IDLE_TIMEOUT") {
       setIdleNotice(true);
+    } else if (notice === "SESSION_EXPIRED") {
+      setExpiredNotice(true);
     }
   }, []);
 
@@ -97,6 +101,20 @@ export function LoginPage() {
             sessão automaticamente após {IDLE_TIMEOUT_MINUTES} minutos sem
             atividade — e também quando a aba é fechada. Entre novamente para
             continuar.
+          </span>
+        </div>
+      )}
+
+      {expiredNotice && !idleNotice && (
+        <div
+          className="mb-6 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-800 animate-fade-in-fast"
+          role="alert"
+        >
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <span>
+            <strong className="font-semibold">Sessão encerrada.</strong>{" "}
+            Sua credencial de acesso expirou ou foi revogada. Entre novamente
+            para continuar.
           </span>
         </div>
       )}
