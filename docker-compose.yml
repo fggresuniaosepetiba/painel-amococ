@@ -6,7 +6,10 @@ services:
     container_name: amococ-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      # Porta do host parametrizável (default 5432 da spec): quando outro
+      # Postgres ocupa a 5432 (ex.: serviço nativo sem permissão p/ `net stop`),
+      # subir com POSTGRES_HOST_PORT=5433 e ajustar o DATABASE_URL local.
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-amococ}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-amococ_dev}
