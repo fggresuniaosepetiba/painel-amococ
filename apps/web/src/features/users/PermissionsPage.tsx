@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Alert, Skeleton, TriStateCheckbox, AvatarInitials } from "@/components/ui/misc";
+import { ROLE_LABELS } from "@/components/shared/badges";
 import {
   ALL_PERMISSIONS,
   PERMISSION_GROUPS,
@@ -148,7 +149,7 @@ export function PermissionsPage() {
                         </span>
                         <span className="block truncate font-mono text-2xs text-slate-500">
                           {u.login} ·{" "}
-                          {u.role === "SUPERADMIN" ? "SuperAdmin" : u.role}
+                          {ROLE_LABELS[u.role] ?? u.role}
                         </span>
                       </span>
                       {u.id === selectedId && (

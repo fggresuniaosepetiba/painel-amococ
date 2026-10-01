@@ -83,7 +83,22 @@ export function DialogBody({
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("flex-1 overflow-y-auto px-6 py-5", className)} {...props} />
+    <div className={cn("min-h-0 flex-1 overflow-y-auto px-6 py-5", className)} {...props} />
+  );
+}
+
+/**
+ * Formulário dentro do modal: mantém a cadeia flex do DialogContent
+ * (`flex-col` + `max-h-[90vh]`). Sem este wrapper, um `<form>` plano quebra o
+ * `flex-1` do DialogBody, a rolagem interna nunca ativa e o DialogFooter
+ * (Salvar) é empurrado para fora da tela em viewports baixos.
+ */
+export function DialogForm({
+  className,
+  ...props
+}: React.FormHTMLAttributes<HTMLFormElement>) {
+  return (
+    <form className={cn("flex min-h-0 flex-1 flex-col", className)} {...props} />
   );
 }
 
