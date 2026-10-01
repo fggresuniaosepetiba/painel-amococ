@@ -18,6 +18,11 @@ function brokenApp(): Express {
 }
 
 describe("Resiliência — erro inesperado vira 500 (nunca derruba o processo)", () => {
+  it("confia no primeiro proxy (rate-limit enxerga o IP real atrás do Render)", () => {
+    // Sem isso, o express-rate-limit registra ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
+    // e todo o tráfego compartilha um único balde (IP do proxy).
+    expect(brokenApp().get("trust proxy")).toBe(1);
+  });
   it("POST /api/auth/login com banco quebrado → 500 JSON", async () => {
     const silence = vi.spyOn(console, "error").mockImplementation(() => {});
     try {

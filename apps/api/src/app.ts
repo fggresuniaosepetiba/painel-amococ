@@ -21,6 +21,12 @@ export function createApp(client: PrismaClient = prisma) {
   const app = express();
   app.locals["db"] = client;
 
+  // Atrás de proxy reverso (Render): confia no primeiro hop para que
+  // req.ip reflita o cliente real. Sem isso, o express-rate-limit registra
+  // ERR_ERL_UNEXPECTED_X_FORWARDED_FOR e todo o tráfego compartilha um
+  // único balde de rate-limit (IP do proxy). `1` = só o hop mais próximo.
+  app.set("trust proxy", 1);
+
   app.use(cors({ origin: env.corsOrigins }));
   // Limite alto: foto/assinatura/PNG trafegam como data URL no JSON.
   app.use(express.json({ limit: "10mb" }));
