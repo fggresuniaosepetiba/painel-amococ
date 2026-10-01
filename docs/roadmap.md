@@ -9,3 +9,6 @@
   (SUPERADMIN bypass, 18 permissões) + auditoria server-side + rate-limit sem
   lockout (spec `prompts/006-fase-5-auth.md`, `docs/reports/005-fase-5-auth.md`)
 - [ ] **Fase 6** — CI (GitHub Actions), Docker de produção, deploy da API
+  (deploy manual concluído: API Render + Neon + web Vercel, ver
+  `docs/reports/006-deploy-producao.md`; pendente CI/Docker/`render.yaml` +
+  mover `db:deploy` para Pre-Deploy Command)

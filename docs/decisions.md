@@ -154,3 +154,25 @@ ambiente local usa 5433 (só `.env`, gitignored). `CORS_ORIGINS` passa a
 incluir `http://localhost:4173` (preview do build, usado pelo
 `test:deploy`). Para voltar ao padrão: `net stop postgresql-x64-17`
 (elevado) + `POSTGRES_HOST_PORT` fora + `.env` na 5432.
+
+## ADR-022 — Erro inesperado nunca derruba o processo (incidente 502 em prod)
+
+`toApiError()` relançava erros não-domínio dentro do `catch` dos 8
+controllers. Em handler async do Express 4 isso vira rejeição não tratada e
+o Node (15+) **mata o processo inteiro**: qualquer `POST` que batia no banco
+(login/seed/refresh) retornava 502 vazio do proxy e derrubava todas as rotas
+até o restart — mascarando a causa real (no caso, P2021: Neon vazio, ver
+`docs/reports/006-deploy-producao.md`). Decisão: `toApiError` é total —
+desconhecido vira 500 `INTERNAL_ERROR` JSON — e o erro original é sempre
+registrado com `console.error`, **inclusive em produção** (antes, o
+`errorHandler` só logava fora de prod, deixando o diagnóstico cego).
+Cobertura: `resilience.integration.test.ts` (banco quebrado → 500, nunca
+hang/crash).
+
+## ADR-023 — `trust proxy` de 1 hop atrás do Render
+
+Sem `app.set("trust proxy", 1)`, o `express-rate-limit` registra
+`ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` e todo o tráfego compartilha um único
+balde de rate-limit (IP do proxy, não do cliente). `1` = confia só no hop
+mais próximo (o proxy do Render, que anexa o IP real do cliente). Cobertura:
+assert de `app.get("trust proxy")` em `resilience.integration.test.ts`.
