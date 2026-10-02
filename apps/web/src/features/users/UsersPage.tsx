@@ -36,6 +36,7 @@ import {
   DialogBody,
   DialogContent,
   DialogFooter,
+  DialogForm,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -194,7 +195,7 @@ export function UsersPage() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Login</TableHead>
-                  <TableHead>Role</TableHead>
+                  <TableHead>Perfil</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Último acesso</TableHead>
                   <TableHead>Criado em</TableHead>
@@ -435,7 +436,7 @@ function UserFormDialog({
             {isCreate ? "Novo usuário" : `Editar ${user?.name ?? ""}`}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={onSubmit} noValidate>
+        <DialogForm onSubmit={onSubmit} noValidate>
           <DialogBody className="space-y-4">
             <div>
               <FieldLabel required>Nome completo</FieldLabel>
@@ -470,7 +471,7 @@ function UserFormDialog({
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <FieldLabel required>Role</FieldLabel>
+                <FieldLabel required>Perfil</FieldLabel>
                 <Select {...register("role")}>
                   <option value="ADMINISTRADOR">Administrador</option>
                   <option value="COLABORADOR">Colaborador</option>
@@ -502,7 +503,7 @@ function UserFormDialog({
             )}
             <Alert variant="info" title="Permissões">
               As permissões granulares podem ser configuradas na página
-              <strong> Permissões</strong>. Usuários com role SuperAdmin possuem
+              <strong> Permissões</strong>. Usuários com perfil SuperAdmin possuem
               acesso total automático.
             </Alert>
           </DialogBody>
@@ -518,7 +519,7 @@ function UserFormDialog({
               {isCreate ? "Criar usuário" : "Salvar alterações"}
             </Button>
           </DialogFooter>
-        </form>
+        </DialogForm>
       </DialogContent>
     </Dialog>
   );
@@ -585,7 +586,7 @@ function ResetPasswordDialog({
             </DialogFooter>
           </>
         ) : (
-          <form onSubmit={onSubmit} noValidate>
+          <DialogForm onSubmit={onSubmit} noValidate>
             <DialogBody className="space-y-4">
               <div>
                 <FieldLabel required>Nova senha</FieldLabel>
@@ -621,7 +622,7 @@ function ResetPasswordDialog({
                 Redefinir senha
               </Button>
             </DialogFooter>
-          </form>
+          </DialogForm>
         )}
       </DialogContent>
     </Dialog>
