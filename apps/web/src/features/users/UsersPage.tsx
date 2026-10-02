@@ -203,51 +203,51 @@ export function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pageItems.map((u) => (
-                  <TableRow key={u.id}>
+                {pageItems.map((user) => (
+                  <TableRow key={user.id}>
                     <TableCell>
                       <span className="flex items-center gap-3">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900 text-[11px] font-bold text-white">
-                          {initialsOf(u.name)}
+                          {initialsOf(user.name)}
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate font-semibold text-slate-900">
-                            {u.name}
+                            {user.name}
                           </span>
                           <span className="block truncate text-2xs text-slate-400">
-                            {u.email}
+                            {user.email}
                           </span>
                         </span>
                       </span>
                     </TableCell>
                     <TableCell className="font-mono text-[13px] text-slate-600">
-                      {u.login}
+                      {user.login}
                     </TableCell>
                     <TableCell>
-                      <RoleBadge role={u.role} />
+                      <RoleBadge role={user.role} />
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={u.status} />
+                      <StatusBadge status={user.status} />
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-slate-500">
-                      {u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Nunca"}
+                      {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "Nunca"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-slate-500">
-                      {formatDateTime(u.createdAt)}
+                      {formatDateTime(user.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
                       <UserRowActions
-                        target={u}
-                        isSelf={u.id === actor?.id}
+                        target={user}
+                        isSelf={user.id === actor?.id}
                         canEdit={hasPermission("users.edit")}
                         canInactivate={hasPermission("users.inactivate")}
                         canPermissions={hasPermission("users.permissions")}
                         onEdit={() => {
-                          setEditingUser(u);
+                          setEditingUser(user);
                           setDialogMode("edit");
                         }}
-                        onReset={() => setResetUser(u)}
-                        onToggle={() => void handleToggleStatus(u)}
+                        onReset={() => setResetUser(user)}
+                        onToggle={() => void handleToggleStatus(user)}
                       />
                     </TableCell>
                   </TableRow>
