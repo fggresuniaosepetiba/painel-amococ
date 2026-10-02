@@ -130,29 +130,29 @@ export function PermissionsPage() {
             </CardHeader>
             <CardContent className="px-0 py-0">
               <ul className="max-h-[520px] divide-y divide-slate-100 overflow-y-auto">
-                {sortedUsers.map((u) => (
-                  <li key={u.id}>
+                {sortedUsers.map((user) => (
+                  <li key={user.id}>
                     <button
                       type="button"
-                      onClick={() => setSelectedId(u.id)}
+                      onClick={() => setSelectedId(user.id)}
                       className={cn(
                         "flex w-full items-center gap-3 px-5 py-3 text-left transition",
-                        u.id === selectedId
+                        user.id === selectedId
                           ? "bg-brand-50/70"
                           : "hover:bg-slate-50"
                       )}
                     >
-                      <AvatarInitials name={u.name} />
+                      <AvatarInitials name={user.name} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-semibold text-slate-900">
-                          {u.name}
+                          {user.name}
                         </span>
                         <span className="block truncate font-mono text-2xs text-slate-500">
-                          {u.login} ·{" "}
-                          {ROLE_LABELS[u.role] ?? u.role}
+                          {user.login} ·{" "}
+                          {ROLE_LABELS[user.role] ?? user.role}
                         </span>
                       </span>
-                      {u.id === selectedId && (
+                      {user.id === selectedId && (
                         <Check className="h-4 w-4 shrink-0 text-brand-600" />
                       )}
                     </button>
@@ -187,9 +187,9 @@ export function PermissionsPage() {
                   onChange={(e) => setSelectedId(e.target.value)}
                   aria-label="Selecionar usuário"
                 >
-                  {sortedUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.login})
+                  {sortedUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.login})
                     </option>
                   ))}
                 </Select>
