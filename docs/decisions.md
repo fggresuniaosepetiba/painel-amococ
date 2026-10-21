@@ -176,3 +176,21 @@ Sem `app.set("trust proxy", 1)`, o `express-rate-limit` registra
 balde de rate-limit (IP do proxy, não do cliente). `1` = confia só no hop
 mais próximo (o proxy do Render, que anexa o IP real do cliente). Cobertura:
 assert de `app.get("trust proxy")` em `resilience.integration.test.ts`.
+
+## ADR-024 — `DialogForm` preserva a cadeia flex e vocabulário `Perfil`
+
+O `DialogContent` é `flex-col` com `max-h-[90vh]`; o `DialogBody` usa
+`flex-1 min-h-0` para rolar internamente e manter o `DialogFooter` visível.
+Um `<form>` plano como filho direto quebrava essa cadeia: o `flex-1` não
+propagava, a rolagem não ativava e o botão Salvar saía da tela em viewports
+baixos (formulário de usuário com muitos campos). Decisão: todo formulário
+dentro de modal usa `DialogForm` (`flex min-h-0 flex-1 flex-col`) e o
+`DialogBody` mantém `min-h-0`. Teste manual em viewport baixo faz parte do
+aceite de telas com modal.
+
+Vocabulário: campo e coluna de tabela são **Perfil** (o antigo "Role");
+**Permissões** fica reservado para a matriz granular. Rótulos vêm de
+`ROLE_LABELS` (`SuperAdmin`, `Administrador`, `Colaborador`), evitando
+divergência entre telas. `role=` de ARIA permanece intacto — é semântica
+HTML, não o conceito de domínio.
+
