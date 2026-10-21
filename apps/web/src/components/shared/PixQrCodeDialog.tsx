@@ -33,10 +33,8 @@ export function PixQrCodeDialog({ open, onOpenChange }: PixQrCodeDialogProps) {
           />
         </DialogBody>
 
-        <DialogFooter className="justify-center border-t-0 bg-transparent pt-0 sm:justify-center">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)}>Fechar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
