@@ -395,10 +395,6 @@ export function AppLayout() {
             <div className="min-w-0 flex-1">
               <Breadcrumbs path={location.pathname} />
             </div>
-            <span className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-2xs font-medium text-slate-500 sm:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Sistema local
-            </span>
             <HeaderUserMenu onLogout={() => void handleLogout()} />
           </div>
         </header>
@@ -408,7 +404,7 @@ export function AppLayout() {
         </main>
 
         <footer className="border-t border-slate-200/70 px-6 py-4 text-center text-2xs text-slate-400">
-          {APP_NAME} — {APP_SUBTITLE} · Dados armazenados localmente no navegador
+          {APP_NAME} — {APP_SUBTITLE}
         </footer>
       </div>
     </div>

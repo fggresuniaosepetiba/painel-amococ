@@ -38,8 +38,6 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div className="relative z-10 flex items-center gap-6 text-2xs uppercase tracking-widest text-slate-500">
           <span>Desde 1981</span>
           <span className="h-1 w-1 rounded-full bg-slate-700" />
-          <span>Sistema local</span>
-          <span className="h-1 w-1 rounded-full bg-slate-700" />
           <span>v1.0</span>
         </div>
 

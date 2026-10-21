@@ -3,7 +3,10 @@ packages:
   - "packages/*"
 
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
+  prisma: true
+  "@prisma/client": true
+  "@prisma/engines": true
 
 # pnpm 11: configurações do workspace vivem neste arquivo (não mais em package.json).
 # Aprova o script de build do esbuild (binário nativo usado pelo Vite).

@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Painel Administrativo da AMOCOC — Associação de Moradores do Conjunto Otacílio Câmara (monorepo pnpm)",
   "scripts": {
-    "dev": "pnpm --filter @amococ/web dev",
+    "dev": "pnpm --parallel --filter @amococ/web --filter @amococ/api dev",
+    "dev:web": "pnpm --filter @amococ/web dev",
     "dev:api": "pnpm --filter @amococ/api dev",
     "build": "pnpm --filter @amococ/web build",
     "build:api": "pnpm --filter @amococ/api build",
