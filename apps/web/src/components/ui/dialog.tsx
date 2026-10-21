@@ -11,8 +11,9 @@ export const DialogContent = forwardRef<
   HTMLDivElement,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     size?: "sm" | "md" | "lg" | "xl";
+    showClose?: boolean;
   }
->(({ className, children, size = "md", ...props }, ref) => (
+>(({ className, children, size = "md", showClose = true, ...props }, ref) => (
   <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink-950/55 backdrop-blur-[2px] data-[state=open]:animate-fade-in-fast" />
     <DialogPrimitive.Content
@@ -28,12 +29,14 @@ export const DialogContent = forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close
-        className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-ring"
-        aria-label="Fechar"
-      >
-        <X className="h-4 w-4" />
-      </DialogPrimitive.Close>
+      {showClose && (
+        <DialogPrimitive.Close
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-ring"
+          aria-label="Fechar"
+        >
+          <X className="h-4 w-4" />
+        </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPrimitive.Portal>
 ));

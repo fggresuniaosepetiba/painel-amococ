@@ -18,7 +18,7 @@ interface PixQrCodeDialogProps {
 export function PixQrCodeDialog({ open, onOpenChange }: PixQrCodeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="sm">
+      <DialogContent size="sm" showClose={false}>
         <DialogHeader>
           <DialogTitle>QR Code PIX</DialogTitle>
         </DialogHeader>

@@ -10,8 +10,9 @@
   `members.create`.
 - Caminho do asset centralizado em `QR_CODE_PIX_PATH`
   (`apps/web/src/constants/index.ts`), seguindo o padrão do `LOGO_PATH`.
-- Fechamento por botão, `ESC` e overlay (Radix). Nenhum endpoint, permissão
-  ou schema alterado.
+- Fechamento pelo botão **Fechar** do rodapé (o X do cabeçalho é suprimido
+  com `showClose={false}` para não duplicar o controle), além de `ESC` e
+  overlay (Radix). Nenhum endpoint, permissão ou schema alterado.
 - Validação: `pnpm --filter @amococ/web typecheck` e
   `pnpm --filter @amococ/web build` limpos; smoke no navegador (login
   `amococ`, aba Dashboard) confirmando ícone/ordem, carregamento da
