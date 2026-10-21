@@ -19,7 +19,7 @@ export function PixQrCodeDialog({ open, onOpenChange }: PixQrCodeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="sm" showClose={false}>
-        <DialogHeader>
+        <DialogHeader className="border-b-0 pr-6 pb-0 text-center">
           <DialogTitle>QR Code PIX</DialogTitle>
         </DialogHeader>
 
@@ -33,7 +33,7 @@ export function PixQrCodeDialog({ open, onOpenChange }: PixQrCodeDialogProps) {
           />
         </DialogBody>
 
-        <DialogFooter>
+        <DialogFooter className="justify-center border-t-0 bg-transparent pt-0 sm:justify-center">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>

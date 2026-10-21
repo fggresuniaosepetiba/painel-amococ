@@ -10,6 +10,8 @@
   `members.create`.
 - Caminho do asset centralizado em `QR_CODE_PIX_PATH`
   (`apps/web/src/constants/index.ts`), seguindo o padrão do `LOGO_PATH`.
+- Conteúdo centralizado: título, imagem e botão **Fechar** alinhados no eixo
+  do modal, sem divisórias (header/footer sobrescritos no componente).
 - Fechamento pelo botão **Fechar** do rodapé (o X do cabeçalho é suprimido
   com `showClose={false}` para não duplicar o controle), além de `ESC` e
   overlay (Radix). Nenhum endpoint, permissão ou schema alterado.
