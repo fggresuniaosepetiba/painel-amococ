@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CreditCard,
+  QrCode,
   UserPlus,
   Users,
   Activity,
@@ -25,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/misc";
 import { ActionBadge, StatusBadge } from "@/components/shared/badges";
+import { PixQrCodeDialog } from "@/components/shared/PixQrCodeDialog";
 import { formatDate, formatRelativeTime, initialsOf } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
@@ -113,6 +115,7 @@ export function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<AuditLog[] | undefined>(
     undefined
   );
+  const [qrOpen, setQrOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,14 +156,20 @@ export function DashboardPage() {
         title={`${greeting}, ${user?.name.split(" ")[0] ?? ""}`}
         description="Visão geral da associação, associados e carteirinhas."
         actions={
-          hasPermission("members.create") ? (
-            <Button asChild>
-              <Link to="/associados/novo">
-                <UserPlus className="h-4 w-4" />
-                Novo associado
-              </Link>
+          <>
+            <Button variant="outline" onClick={() => setQrOpen(true)}>
+              <QrCode className="h-4 w-4" />
+              QR Code PIX
             </Button>
-          ) : undefined
+            {hasPermission("members.create") && (
+              <Button asChild>
+                <Link to="/associados/novo">
+                  <UserPlus className="h-4 w-4" />
+                  Novo associado
+                </Link>
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -353,6 +362,8 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <PixQrCodeDialog open={qrOpen} onOpenChange={setQrOpen} />
     </PageContainer>
   );
 }

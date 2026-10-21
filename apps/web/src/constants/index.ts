@@ -6,6 +6,7 @@ export const APP_VERSION = "1.0.0";
 export const APP_ENVIRONMENT = "Local (persistência local)";
 
 export const LOGO_PATH = "/assets/images/logo-amococ.png";
+export const QR_CODE_PIX_PATH = "/assets/images/qrcode-pix.png";
 
 export const SIDEBAR_STORAGE_KEY = "amococ.sidebar.collapsed";
 
