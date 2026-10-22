@@ -2,6 +2,7 @@ export { authService, AuthError } from "./authService";
 export { authorizationService, hasPermission } from "./authorizationService";
 export { auditService } from "./auditService";
 export { memberService } from "./memberService";
+export { declarationService } from "./declarationService";
 export { userService } from "./userService";
 export { settingsService } from "./settingsService";
 export { signatureService } from "./signatureService";

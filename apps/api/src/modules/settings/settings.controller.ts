@@ -76,6 +76,31 @@ export const settingsController = {
     }
   },
 
+  async updateDeclaration(req: Request, res: Response): Promise<void> {
+    try {
+      const parsed = settingsSaveSchema.safeParse(req.body);
+      if (!parsed.success || !parsed.data.declaration) {
+        res.status(400).json({
+          status: "error",
+          code: "VALIDATION_ERROR",
+          message:
+            parsed.success === false
+              ? (parsed.error.issues[0]?.message ?? "Dados inválidos.")
+              : "Bloco declaration ausente.",
+        });
+        return;
+      }
+      const saved = await settingsService.updateDeclaration(
+        parsed.data.declaration,
+        reqUser(req),
+        dbOf(req),
+      );
+      res.status(200).json({ status: "ok", data: saved });
+    } catch (err) {
+      sendError(res, err);
+    }
+  },
+
   async updateSecurity(req: Request, res: Response): Promise<void> {
     try {
       const parsed = settingsSaveSchema.safeParse(req.body);

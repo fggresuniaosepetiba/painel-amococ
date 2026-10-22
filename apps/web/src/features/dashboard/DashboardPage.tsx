@@ -189,7 +189,7 @@ export function DashboardPage() {
           icon={BadgeCheck}
           accent="emerald"
           loading={loading}
-          to="/associados"
+          to="/associados?status=ATIVO"
         />
         <KpiCard
           label="Associados inativos"
@@ -197,7 +197,7 @@ export function DashboardPage() {
           icon={Users}
           accent="gold"
           loading={loading}
-          to="/associados"
+          to="/associados?status=INATIVO"
         />
         <KpiCard
           label="Carteirinhas emitidas"

@@ -7,6 +7,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   association: {
     name: "Associação de Moradores do Conjunto Otacílio Câmara",
     acronym: "AMOCOC",
+    cnpj: "37.439.099/0001-32",
     address: "",
     phone: "",
     email: "",
@@ -22,6 +23,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
     showPhone: true,
     showAddress: false,
     showIssueDate: true,
+    signaturePlacement: null,
+  },
+  declaration: {
     signaturePlacement: null,
   },
   signature: {
@@ -45,6 +49,10 @@ export function mergeWithDefaults(stored: Partial<AppSettings>): AppSettings {
     id: "general",
     association: { ...DEFAULT_SETTINGS.association, ...stored.association },
     card: { ...DEFAULT_SETTINGS.card, ...stored.card },
+    declaration: {
+      ...DEFAULT_SETTINGS.declaration,
+      ...stored.declaration,
+    },
     signature: { ...DEFAULT_SETTINGS.signature, ...stored.signature },
     security: { ...DEFAULT_SETTINGS.security, ...stored.security },
   };

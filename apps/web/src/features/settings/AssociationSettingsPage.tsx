@@ -15,6 +15,7 @@ import {
   type AssociationSettingsFormValues,
 } from "@/schemas/settings";
 import { imageService, settingsService } from "@/services";
+import { formatCnpj } from "@/utils/format";
 import type { AppSettings } from "@amococ/shared";
 import { MAX_PHOTO_SIZE, LOGO_PATH } from "@/constants";
 
@@ -51,6 +52,7 @@ export function AssociationSettingsPage() {
     defaultValues: {
       name: "",
       acronym: "",
+      cnpj: "",
       address: "",
       phone: "",
       email: "",
@@ -63,6 +65,7 @@ export function AssociationSettingsPage() {
     reset({
       name: settings.association.name,
       acronym: settings.association.acronym,
+      cnpj: settings.association.cnpj,
       address: settings.association.address,
       phone: settings.association.phone,
       email: settings.association.email,
@@ -70,6 +73,13 @@ export function AssociationSettingsPage() {
     });
     setLogoPreview(settings.association.customLogoDataUrl);
   }, [settings, reset]);
+
+  /** Máscara de CNPJ (00.000.000/0000-00) aplicada na digitação. */
+  const cnpjRegister = register("cnpj", {
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+      event.target.value = formatCnpj(event.target.value);
+    },
+  });
 
   const onSubmit = handleSubmit(async (values) => {
     if (!user) return;
@@ -181,6 +191,16 @@ export function AssociationSettingsPage() {
                 {...register("acronym")}
               />
               <FieldError message={errors.acronym?.message} />
+            </div>
+            <div>
+              <FieldLabel hint="Impresso nas declarações">CNPJ</FieldLabel>
+              <Input
+                readOnly={readOnly}
+                placeholder="00.000.000/0000-00"
+                invalid={Boolean(errors.cnpj)}
+                {...cnpjRegister}
+              />
+              <FieldError message={errors.cnpj?.message} />
             </div>
             <div>
               <FieldLabel>Telefone</FieldLabel>

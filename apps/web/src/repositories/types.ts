@@ -6,6 +6,7 @@ import type {
   Member,
   MemberStatus,
   Permission,
+  ResidenceDeclaration,
   Role,
   UsedIdentifier,
   User,
@@ -79,6 +80,31 @@ export interface CardsRepository {
   ): Promise<MembershipCardRecord>;
   /** Remove as carteirinhas de um associado excluído definitivamente. */
   deleteByMemberId(memberId: string): Promise<void>;
+}
+
+/** Dados manuais enviados na emissão de uma declaração. */
+export interface DeclarationDraft {
+  residentName: string;
+  /** ISO yyyy-mm-dd (convertido no service a partir do dd/mm/aaaa). */
+  birthDate: string;
+  cpf: string;
+  address: string;
+  residenceYears: number;
+  residenceMonths: number;
+}
+
+export interface DeclarationsRepository {
+  getAll(): Promise<ResidenceDeclaration[]>;
+  getById(id: string): Promise<ResidenceDeclaration | undefined>;
+  create(draft: DeclarationDraft): Promise<ResidenceDeclaration>;
+  /** Registra a impressão na auditoria (impressão e reimpressão). */
+  registerPrint(id: string): Promise<void>;
+  setStatus(
+    id: string,
+    status: "ATIVO" | "INATIVO"
+  ): Promise<ResidenceDeclaration>;
+  /** Exclusão definitiva (somente de declarações INATIVAS — validada no service). */
+  delete(id: string): Promise<void>;
 }
 
 export interface SettingsRepository {

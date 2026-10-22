@@ -341,6 +341,7 @@ export const systemService = {
   async factoryReset(db: Db = prisma): Promise<{ reset: boolean }> {
     await db.$transaction([
       db.auditLog.deleteMany(),
+      db.residenceDeclaration.deleteMany(),
       db.membershipCard.deleteMany(),
       db.member.deleteMany(),
       db.setting.deleteMany(),

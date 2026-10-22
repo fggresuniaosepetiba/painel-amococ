@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   BadgeCheck,
   CircleAlert,
+  FileText,
   Move,
   PenLine,
   RotateCcw,
@@ -36,6 +37,10 @@ import {
 import { MAX_SIGNATURE_SIZE } from "@/constants";
 import { formatDate } from "@/utils/format";
 import { MembershipCard } from "@/features/cards/MembershipCard";
+import {
+  ResidenceDeclarationDocument,
+  type DeclarationDocumentData,
+} from "@/features/declarations/ResidenceDeclarationDocument";
 import type { CardRenderContext } from "@/services/cardGenerationService";
 import type { AppSettings, Member, SignaturePlacement } from "@amococ/shared";
 
@@ -70,12 +75,30 @@ const previewMember: Member = {
   updatedAt: "",
 };
 
+/** Dados de exemplo só para a prévia do A4 (não são gravados). */
+const previewDeclaration: DeclarationDocumentData = {
+  residentName: "Maria Aparecida de Souza",
+  birthDate: "1985-04-12",
+  cpf: "111.444.777-35",
+  address:
+    "Rua Otacílio Câmara, 45 - Conjunto Otacílio Câmara, Rio de Janeiro - RJ - CEP 21230-000",
+  residenceYears: 12,
+  residenceMonths: 6,
+  issuedAt: "2026-10-22T12:00:00.000Z",
+};
+
+/** Escala da prévia do A4 (210 × 297 mm ≈ 794 × 1123 px). */
+const DECLARATION_PREVIEW_SCALE = 0.62;
+const DECLARATION_PREVIEW_WIDTH = 794;
+const DECLARATION_PREVIEW_HEIGHT = 1123;
+
 /**
  * Configurações → Assinatura.
  *
- * Fluxo em rascunho: enviar imagem → a prévia da carteirinha aparece na hora →
+ * Fluxo em rascunho: enviar imagem → as prévias aparecem na hora →
  * arrastar/redimensionar → **Salvar assinatura**. Enquanto não salvar, a
- * imagem e a posição NÃO valem para as carteirinhas (o banco não é tocado).
+ * imagem e as posições NÃO valem para as carteirinhas nem declarações (o
+ * banco não é tocado).
  */
 export function SignatureSettingsPage() {
   const { user, hasPermission } = useAuth();
@@ -87,6 +110,8 @@ export function SignatureSettingsPage() {
   const [busy, setBusy] = useState(false);
   const [draftImage, setDraftImage] = useState<DraftImage | null>(null);
   const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
+  const [declarationPlacement, setDeclarationPlacement] =
+    useState<SignaturePlacement | null>(null);
   const [trimmedPreview, setTrimmedPreview] = useState("");
 
   const {
@@ -130,6 +155,7 @@ export function SignatureSettingsPage() {
       presidentTitle: settings.signature.presidentTitle,
     });
     setPlacement(settings.card.signaturePlacement ?? null);
+    setDeclarationPlacement(settings.declaration.signaturePlacement ?? null);
   }, [settings, reset]);
 
   const signature = settings?.signature ?? null;
@@ -156,9 +182,19 @@ export function SignatureSettingsPage() {
   }, [previewSource]);
 
   const watched = watch();
-  const placementDirty =
+  const cardPlacementDirty =
     JSON.stringify(placement ?? null) !== JSON.stringify(savedPlacement);
-  const canSave = !readOnly && (isDirty || Boolean(draftImage) || placementDirty);
+  const savedDeclarationPlacement =
+    settings?.declaration.signaturePlacement ?? null;
+  const declarationPlacementDirty =
+    JSON.stringify(declarationPlacement ?? null) !==
+    JSON.stringify(savedDeclarationPlacement);
+  const canSave =
+    !readOnly &&
+    (isDirty ||
+      Boolean(draftImage) ||
+      cardPlacementDirty ||
+      declarationPlacementDirty);
 
   const previewContext: CardRenderContext | null = useMemo(() => {
     if (!settings) return null;
@@ -181,6 +217,39 @@ export function SignatureSettingsPage() {
     };
   }, [settings, watched, trimmedPreview, placement]);
 
+  /**
+   * Configurações da prévia do A4: mesma assinatura oficial (ou o rascunho
+   * recém-enviado) com a posição que está sendo ajustada na tela.
+   */
+  const declarationPreviewSettings: AppSettings | null = useMemo(() => {
+    if (!settings) return null;
+    return {
+      ...settings,
+      signature: {
+        ...settings.signature,
+        presidentName:
+          watched.presidentName || settings.signature.presidentName,
+        presidentTitle:
+          watched.presidentTitle ||
+          settings.signature.presidentTitle ||
+          "Presidente da Diretoria",
+        imageDataUrl: previewSource,
+        mimeType: draftImage?.mimeType ?? settings.signature.mimeType,
+      },
+      declaration: {
+        ...settings.declaration,
+        signaturePlacement: declarationPlacement,
+      },
+    };
+  }, [
+    settings,
+    watched.presidentName,
+    watched.presidentTitle,
+    previewSource,
+    draftImage?.mimeType,
+    declarationPlacement,
+  ]);
+
   /** Envio do arquivo apenas cria o RASCUNHO — nada é gravado no banco. */
   const handleFile = async (file: File | undefined) => {
     if (!file || readOnly) return;
@@ -195,7 +264,7 @@ export function SignatureSettingsPage() {
       setDraftImage({ dataUrl: processed.dataUrl, mimeType: processed.mimeType });
       toast.info(
         "Prévia pronta",
-        'Ajuste a posição na carteirinha e clique em "Salvar assinatura" para aplicar.'
+        'Ajuste a posição na carteirinha e na declaração e clique em "Salvar assinatura" para aplicar.'
       );
     } catch {
       toast.error("Não foi possível ler a imagem", "Tente novamente.");
@@ -209,12 +278,21 @@ export function SignatureSettingsPage() {
     setBusy(true);
     try {
       await signatureService.save({ imageDataUrl: null, mimeType: null });
-      await settingsService.updateCard({ signaturePlacement: null });
+      if (savedPlacement) {
+        await settingsService.updateCard({ signaturePlacement: null });
+      }
+      if (savedDeclarationPlacement) {
+        await settingsService.updateDeclaration({ signaturePlacement: null });
+      }
       setDraftImage(null);
       setPlacement(null);
+      setDeclarationPlacement(null);
       // Auditoria (SIGNATURE_UPDATED + SETTINGS_UPDATED) no servidor.
       await reloadSettings();
-      toast.info("Assinatura removida", "Novas carteirinhas ficarão bloqueadas.");
+      toast.info(
+        "Assinatura removida",
+        "Novas carteirinhas e declarações ficarão bloqueadas."
+      );
     } finally {
       setBusy(false);
     }
@@ -225,14 +303,23 @@ export function SignatureSettingsPage() {
     if (!user) return;
     setBusy(true);
     try {
-      await signatureService.save({
-        presidentName: values.presidentName,
-        presidentTitle: values.presidentTitle,
-        ...(draftImage
-          ? { imageDataUrl: draftImage.dataUrl, mimeType: draftImage.mimeType }
-          : {}),
-      });
-      await settingsService.updateCard({ signaturePlacement: placement });
+      if (isDirty || draftImage) {
+        await signatureService.save({
+          presidentName: values.presidentName,
+          presidentTitle: values.presidentTitle,
+          ...(draftImage
+            ? { imageDataUrl: draftImage.dataUrl, mimeType: draftImage.mimeType }
+            : {}),
+        });
+      }
+      if (cardPlacementDirty) {
+        await settingsService.updateCard({ signaturePlacement: placement });
+      }
+      if (declarationPlacementDirty) {
+        await settingsService.updateDeclaration({
+          signaturePlacement: declarationPlacement,
+        });
+      }
       // Auditoria (SIGNATURE_UPDATED / SETTINGS_UPDATED) no servidor.
       await reloadSettings();
       const hadDraft = Boolean(draftImage);
@@ -241,8 +328,8 @@ export function SignatureSettingsPage() {
       toast.success(
         "Assinatura salva",
         hadDraft
-          ? "Imagem e posição já valem para as próximas carteirinhas."
-          : "Alterações aplicadas às próximas carteirinhas."
+          ? "Imagem e posições já valem para as próximas carteirinhas e declarações."
+          : "Alterações aplicadas às próximas carteirinhas e declarações."
       );
     } catch {
       toast.error("Não foi possível salvar a assinatura", "Tente novamente.");
@@ -309,8 +396,8 @@ export function SignatureSettingsPage() {
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
                 PNG, JPG ou JPEG. A transparência do PNG é preservada e o fundo
                 em branco é recortado automaticamente. Depois do envio, arraste
-                a assinatura na prévia abaixo e clique em{" "}
-                <strong>Salvar assinatura</strong> — sem salvar, nada é
+                a assinatura nas prévias abaixo e clique em{" "}
+                <strong>Salvar assinatura</strong> – sem salvar, nada é
                 aplicado.
               </p>
               {!readOnly && (
@@ -361,9 +448,10 @@ export function SignatureSettingsPage() {
           </div>
 
           {draftImage && (
-            <Alert variant="warning" title="Rascunho — ainda não aplicado">
-              A assinatura aparece na prévia abaixo, mas só passa a valer nas
-              carteirinhas depois que você clicar em "Salvar assinatura".
+            <Alert variant="warning" title="Rascunho – ainda não aplicado">
+              A assinatura aparece nas prévias abaixo, mas só passa a valer nas
+              carteirinhas e declarações depois que você clicar em "Salvar
+              assinatura".
             </Alert>
           )}
 
@@ -376,7 +464,7 @@ export function SignatureSettingsPage() {
           {!configured && (
             <Alert variant="warning" title="Geração bloqueada">
               Enquanto a assinatura não for salva, não será possível gerar
-              carteirinhas.
+              carteirinhas nem declarações.
             </Alert>
           )}
         </CardContent>
@@ -450,9 +538,9 @@ export function SignatureSettingsPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-2xs text-slate-400">
                 {draftImage
-                  ? "Rascunho não aplicado — clique em Salvar assinatura para valer."
-                  : placementDirty
-                    ? "Posição alterada — clique em Salvar assinatura para aplicar."
+                  ? "Rascunho não aplicado – clique em Salvar assinatura para valer."
+                  : cardPlacementDirty
+                    ? "Posição alterada – clique em Salvar assinatura para aplicar."
                     : savedPlacement
                       ? "Posição personalizada salva."
                       : "Posição padrão: colada na linha, à direita."}
@@ -469,7 +557,96 @@ export function SignatureSettingsPage() {
             </div>
           </CardContent>
           {!readOnly && (
-            <CardFooter className="justify-end">
+            <CardFooter className="flex-wrap items-center justify-between gap-3">
+              <p className="text-2xs text-slate-500">
+                Salvar aplica o signatário, a imagem e as posições das duas
+                prévias.
+              </p>
+              <Button type="submit" loading={busy} disabled={!canSave}>
+                {!busy && <Save className="h-4 w-4" />}
+                {busy ? "Salvando..." : "Salvar assinatura"}
+              </Button>
+            </CardFooter>
+          )}
+        </Card>
+
+        {/* Prévia na declaração: arrastar/redimensionar */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-brand-500" />
+              Prévia na declaração
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs leading-relaxed text-slate-500">
+              A declaração usa a mesma assinatura oficial. Arraste-a sobre o
+              papel A4 para posicionar e puxe o pontinho laranja do canto para
+              aumentar ou diminuir o tamanho. Nada é aplicado até você salvar.
+            </p>
+            {!previewSource && (
+              <Alert variant="warning" title="Envie a assinatura primeiro">
+                Sem a imagem oficial, a declaração fica bloqueada e não há o
+                que posicionar.
+              </Alert>
+            )}
+            {declarationPreviewSettings && (
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-100 p-4">
+                <div
+                  className="mx-auto overflow-hidden"
+                  style={{
+                    width:
+                      DECLARATION_PREVIEW_WIDTH * DECLARATION_PREVIEW_SCALE,
+                    height:
+                      DECLARATION_PREVIEW_HEIGHT * DECLARATION_PREVIEW_SCALE,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: DECLARATION_PREVIEW_WIDTH,
+                      transform: `scale(${DECLARATION_PREVIEW_SCALE})`,
+                      transformOrigin: "top left",
+                    }}
+                  >
+                    <ResidenceDeclarationDocument
+                      data={previewDeclaration}
+                      settings={declarationPreviewSettings}
+                      signatureDrag={{
+                        enabled: !readOnly,
+                        onChange: setDeclarationPlacement,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-2xs text-slate-400">
+                {draftImage
+                  ? "Rascunho não aplicado – clique em Salvar assinatura para valer."
+                  : declarationPlacementDirty
+                    ? "Posição alterada – clique em Salvar assinatura para aplicar."
+                    : savedDeclarationPlacement
+                      ? "Posição personalizada salva."
+                      : "Posição padrão: centralizada acima da linha."}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDeclarationPlacement(null)}
+                disabled={readOnly || !declarationPlacement}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Restaurar posição padrão
+              </Button>
+            </div>
+          </CardContent>
+          {!readOnly && (
+            <CardFooter className="flex-wrap items-center justify-between gap-3">
+              <p className="text-2xs text-slate-500">
+                Salvar aplica o signatário, a imagem e as posições das duas
+                prévias.
+              </p>
               <Button type="submit" loading={busy} disabled={!canSave}>
                 {!busy && <Save className="h-4 w-4" />}
                 {busy ? "Salvando..." : "Salvar assinatura"}

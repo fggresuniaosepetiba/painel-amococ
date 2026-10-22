@@ -25,6 +25,16 @@ export const settingsService = {
     });
   },
 
+  async updateDeclaration(
+    patch: Partial<AppSettings["declaration"]>
+  ): Promise<AppSettings> {
+    const current = await settingsRepository.get();
+    return settingsRepository.save({
+      ...current,
+      declaration: { ...current.declaration, ...patch },
+    });
+  },
+
   async updateSecurity(
     patch: Partial<AppSettings["security"]>
   ): Promise<AppSettings> {

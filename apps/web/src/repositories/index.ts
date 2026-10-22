@@ -4,6 +4,7 @@
  */
 import { ApiAuditRepository } from "./api/AuditRepository";
 import { ApiCardsRepository } from "./api/CardsRepository";
+import { ApiDeclarationsRepository } from "./api/DeclarationsRepository";
 import { ApiMembersRepository } from "./api/MembersRepository";
 import { ApiSettingsRepository } from "./api/SettingsRepository";
 import { ApiUsedIdentifiersRepository } from "./api/UsedIdentifiersRepository";
@@ -11,6 +12,7 @@ import { ApiUsersRepository } from "./api/UsersRepository";
 import type {
   AuditRepository,
   CardsRepository,
+  DeclarationsRepository,
   MembersRepository,
   SettingsRepository,
   UsedIdentifiersRepository,
@@ -21,6 +23,8 @@ export const usersRepository: UsersRepository = new ApiUsersRepository();
 export const membersRepository: MembersRepository =
   new ApiMembersRepository();
 export const cardsRepository: CardsRepository = new ApiCardsRepository();
+export const declarationsRepository: DeclarationsRepository =
+  new ApiDeclarationsRepository();
 export const settingsRepository: SettingsRepository =
   new ApiSettingsRepository();
 export const auditRepository: AuditRepository = new ApiAuditRepository();
@@ -31,6 +35,8 @@ export { DEFAULT_SETTINGS } from "./api/SettingsRepository";
 export type {
   AuditRepository,
   CardsRepository,
+  DeclarationDraft,
+  DeclarationsRepository,
   MembersRepository,
   SettingsRepository,
   UsedIdentifiersRepository,

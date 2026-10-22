@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   association: {
     name: "Associação de Moradores do Camorim — AMOCOC",
     acronym: "AMOCOC",
+    cnpj: "37.439.099/0001-32",
     address: "",
     phone: "",
     email: "",
@@ -25,6 +26,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
     showPhone: true,
     showAddress: false,
     showIssueDate: true,
+    signaturePlacement: null,
+  },
+  declaration: {
     signaturePlacement: null,
   },
   signature: {
@@ -46,6 +50,10 @@ function withDefaults(stored: Partial<AppSettings>): AppSettings {
     id: "general",
     association: { ...DEFAULT_SETTINGS.association, ...stored.association },
     card: { ...DEFAULT_SETTINGS.card, ...stored.card },
+    declaration: {
+      ...DEFAULT_SETTINGS.declaration,
+      ...stored.declaration,
+    },
     signature: { ...DEFAULT_SETTINGS.signature, ...stored.signature },
     security: { ...DEFAULT_SETTINGS.security, ...stored.security },
   };
@@ -71,6 +79,7 @@ export class ApiSettingsRepository implements SettingsRepository {
     const blocks = {
       association: { ...settings.association },
       card: { ...settings.card },
+      declaration: { ...settings.declaration },
       security: { ...settings.security },
     };
     if (changed(settings.association, current.association)) {
@@ -81,6 +90,12 @@ export class ApiSettingsRepository implements SettingsRepository {
     }
     if (changed(settings.card, current.card)) {
       await api("/api/settings/card", {
+        method: "PATCH",
+        body: { ...blocks },
+      });
+    }
+    if (changed(settings.declaration, current.declaration)) {
+      await api("/api/settings/declaration", {
         method: "PATCH",
         body: { ...blocks },
       });

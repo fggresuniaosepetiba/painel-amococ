@@ -82,6 +82,27 @@ export const settingsService = {
     return saved;
   },
 
+  async updateDeclaration(
+    patch: Partial<AppSettings["declaration"]>,
+    actor?: Actor | null,
+    db: Db = prisma,
+  ): Promise<AppSettings> {
+    const who = actor ?? SYSTEM_ACTOR;
+    const current = await settingsRepository.get(db);
+    const saved = await settingsRepository.save(db, {
+      ...current,
+      declaration: { ...current.declaration, ...patch },
+    });
+    await logAudit(db, {
+      ...auditAs(who),
+      action: "SETTINGS_UPDATED",
+      entity: "settings",
+      entityId: "general",
+      details: "Configurações da declaração atualizadas",
+    });
+    return saved;
+  },
+
   async updateSecurity(
     patch: Partial<AppSettings["security"]>,
     actor?: Actor | null,

@@ -11,6 +11,7 @@ import { createId } from "../../shared/ids.js";
 import { passwordHasher } from "../users/password-hasher.js";
 import { usersRepository } from "../users/users.repository.js";
 import { membersService } from "../members/members.service.js";
+import { declarationsRepository } from "../declarations/declarations.repository.js";
 import { usersService } from "../users/users.service.js";
 import { signAccessToken } from "./tokens.js";
 
@@ -24,6 +25,7 @@ let db: PrismaClient;
 let app: Express;
 let fixedHash: { salt: string; hash: string };
 let memberId: string;
+let declarationId: string;
 let otherUserId: string;
 
 const MATRIX_PASSWORD = "matrix-123";
@@ -120,6 +122,30 @@ const settingsBlocks = () => ({
   security: {},
 });
 
+/** Cria uma declaração direto no repositório (a matriz testa autorização,
+ * não regras de negócio como assinatura obrigatória). */
+async function makeDeclaration(status: "ATIVO" | "INATIVO"): Promise<string> {
+  const id = createId();
+  const now = new Date().toISOString();
+  await declarationsRepository.create(db, {
+    id,
+    residentName: "Morador Matrix",
+    birthDate: "1990-04-12",
+    cpf: "",
+    address: "Rua das Palmeiras, 100 - Conjunto Otacílio Câmara",
+    residenceYears: 5,
+    residenceMonths: 3,
+    issuedAt: now,
+    issuedByUserId: "matrix",
+    issuedByName: "matrix",
+    status,
+    inactivatedAt: status === "INATIVO" ? now : null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return id;
+}
+
 const ROWS: MatrixRow[] = [
   { name: "GET /api/members", method: "get", path: () => "/api/members", permission: "members.view" },
   { name: "GET /api/members/preview-next", method: "get", path: () => "/api/members/preview-next", permission: "members.view" },
@@ -158,6 +184,61 @@ const ROWS: MatrixRow[] = [
     path: () => `/api/cards/${memberId}/downloaded`,
     permission: "cards.download",
     body: () => ({}),
+  },
+  { name: "GET /api/declarations", method: "get", path: () => "/api/declarations", permission: "declarations.view" },
+  { name: "GET /api/declarations/:id (inexistente)", method: "get", path: () => "/api/declarations/inexistente", permission: "declarations.view" },
+  {
+    name: "POST /api/declarations",
+    method: "post",
+    path: () => "/api/declarations",
+    permission: "declarations.create",
+    body: () => ({
+      residentName: "Morador Matrix",
+      birthDate: "1990-04-12",
+      cpf: "",
+      address: "Rua das Palmeiras, 100 - Conjunto Otacílio Câmara",
+      residenceYears: 5,
+      residenceMonths: 3,
+    }),
+  },
+  {
+    name: "POST /api/declarations/:id/printed",
+    method: "post",
+    path: () => `/api/declarations/${declarationId}/printed`,
+    permission: "declarations.view",
+    body: () => ({}),
+    prepare: async () => {
+      declarationId = await makeDeclaration("ATIVO");
+    },
+  },
+  {
+    name: "POST /api/declarations/:id/inactivate",
+    method: "post",
+    path: () => `/api/declarations/${declarationId}/inactivate`,
+    permission: "declarations.inactivate",
+    body: () => ({}),
+    prepare: async () => {
+      declarationId = await makeDeclaration("ATIVO");
+    },
+  },
+  {
+    name: "POST /api/declarations/:id/reactivate",
+    method: "post",
+    path: () => `/api/declarations/${declarationId}/reactivate`,
+    permission: "declarations.reactivate",
+    body: () => ({}),
+    prepare: async () => {
+      declarationId = await makeDeclaration("INATIVO");
+    },
+  },
+  {
+    name: "DELETE /api/declarations/:id",
+    method: "delete",
+    path: () => `/api/declarations/${declarationId}`,
+    permission: "declarations.delete",
+    prepare: async () => {
+      declarationId = await makeDeclaration("INATIVO");
+    },
   },
   { name: "GET /api/users (só SUPERADMIN)", method: "get", path: () => "/api/users", permission: "SUPERADMIN_ONLY" },
   { name: "GET /api/users/:id (só SUPERADMIN)", method: "get", path: () => `/api/users/${otherUserId}`, permission: "SUPERADMIN_ONLY" },

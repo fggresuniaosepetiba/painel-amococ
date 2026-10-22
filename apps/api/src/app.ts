@@ -8,6 +8,7 @@ import { notFound } from "./middlewares/notFound.js";
 import { auditRouter } from "./modules/audit/audit.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { cardsRouter } from "./modules/cards/cards.routes.js";
+import { declarationsRouter } from "./modules/declarations/declarations.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import { membersRouter } from "./modules/members/members.routes.js";
 import { settingsRouter } from "./modules/settings/settings.routes.js";
@@ -38,6 +39,7 @@ export function createApp(client: PrismaClient = prisma) {
   app.use("/api/members", membersRouter);
   app.use("/api/users", usersRouter);
   app.use("/api/cards", cardsRouter);
+  app.use("/api/declarations", declarationsRouter);
   app.use("/api/settings", settingsRouter);
   app.use("/api/audit", auditRouter);
   app.use("/api/used-identifiers", usedIdentifiersRouter);

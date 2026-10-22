@@ -100,8 +100,221 @@
   }
 }
 
+/* --- Documento de declaração de residência (papel A4) ---------------- */
+.declaration-sheet {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 18mm 20mm;
+  background: white;
+  color: #0f172a;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.85;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.declaration-logo {
+  display: block;
+  height: 100px;
+  width: auto;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.declaration-title {
+  margin: 22px 0 8px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.declaration-cnpj {
+  margin: 0 0 32px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.declaration-paragraph {
+  margin: 0 0 18px;
+  text-align: justify;
+}
+
+/* Nome do morador na mesma linha do "QUE", com o mesmo estilo do restante
+   do texto — apenas em negrito, sem sublinhado. */
+.declaration-que-name {
+  font-weight: 700;
+}
+
+/* Dados vindos do cadastro da declaração — sempre em negrito. */
+.declaration-data {
+  font-weight: 700;
+}
+
+.declaration-data--italic {
+  font-style: italic;
+}
+
+.declaration-signature-block {
+  margin-top: 38px;
+  text-align: center;
+}
+
+.declaration-signature-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.declaration-signature-line {
+  width: 55%;
+  margin: 34px auto 8px;
+  border-bottom: 1px solid #0f172a;
+}
+
+.declaration-signature-line--resident {
+  width: 72%;
+  margin: 0 auto 8px;
+}
+
+.declaration-spacer {
+  flex: 1;
+  min-height: 24px;
+}
+
+.declaration-responsible {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.declaration-signature-img {
+  display: block;
+  height: 58px;
+  width: auto;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.declaration-signature-img-placeholder {
+  display: block;
+  height: 58px;
+}
+
+.declaration-president {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.declaration-footer {
+  margin: 100px 0 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+/* Espaço físico abaixo da data para o carimbo e a rubrica do presidente. */
+.declaration-stamp-space {
+  flex-shrink: 0;
+  height: 22mm;
+}
+
+/* Camada de posicionamento da assinatura: cobre exatamente a área útil do A4
+   (170 × 261 mm). Na tela o papel tem margens no padding; na impressão o
+   `@page` já aplica as margens, então a camada encosta nas bordas. */
+.declaration-placement-layer {
+  position: absolute;
+  inset: 18mm 20mm;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.declaration-placement-box {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.declaration-signature-img-placed {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Realce apenas na prévia de Configurações (não aparece na impressão). */
+.declaration-draggable {
+  border-radius: 2px;
+  outline: 2px dashed rgba(249, 115, 22, 0.7);
+  outline-offset: 3px;
+}
+
+.declaration-drag-handle {
+  position: absolute;
+  right: -12px;
+  bottom: -12px;
+  width: 26px;
+  height: 26px;
+  border: 2px solid #ffffff;
+  border-radius: 9999px;
+  background: #f97316;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+  cursor: nwse-resize;
+}
+
 @media print {
   body {
     background: white;
   }
+
+  /* Só o documento vai para o papel (print-area). */
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: none;
+    /* Área útil do A4: 297mm - 18mm de margem superior e inferior.
+       Mantém o rodapé/assinaturas no lugar em que aparecem na prévia. */
+    min-height: 260mm;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* A camada de posicionamento acompanha a área útil da impressão. */
+  .declaration-placement-layer {
+    inset: 0;
+  }
+
+  .declaration-draggable {
+    outline: none !important;
+  }
+
+  .declaration-drag-handle {
+    display: none !important;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 18mm 20mm;
 }

@@ -167,6 +167,37 @@ export function isValidCpf(value: string): boolean {
   return d1 === Number(cpf[9]) && d2 === Number(cpf[10]);
 }
 
+/** Formata CNPJ: 00.000.000/0000-00 */
+export function formatCnpj(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 14);
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length <= 12)
+    return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+}
+
+/** Valida CNPJ pelo algoritmo dos dígitos verificadores. */
+export function isValidCnpj(value: string): boolean {
+  const cnpj = value.replace(/\D/g, "");
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+  const calc = (base: string): number => {
+    let weight = base.length - 7;
+    let total = 0;
+    for (const char of base) {
+      total += Number(char) * weight;
+      weight -= 1;
+      if (weight < 2) weight = 9;
+    }
+    const rest = total % 11;
+    return rest < 2 ? 0 : 11 - rest;
+  };
+  const d1 = calc(cnpj.slice(0, 12));
+  const d2 = calc(`${cnpj.slice(0, 12)}${d1}`);
+  return d1 === Number(cnpj[12]) && d2 === Number(cnpj[13]);
+}
+
 export function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";

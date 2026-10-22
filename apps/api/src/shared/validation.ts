@@ -113,11 +113,40 @@ export const cardGenerateSchema = z.object({
   pngDataUrl: z.string().min(1, "PNG da carteirinha ausente."),
 });
 
+// Declaração de residência — formulário manual (nunca puxa de associado).
+export const declarationCreateSchema = z.object({
+  residentName: nonEmptyTrimmed(120),
+  birthDate: z.string().refine((v) => v !== "" && isValidIsoDate(v), {
+    message: "Data de nascimento inválida. Use aaaa-mm-dd.",
+  }),
+  cpf: z.string().refine((v) => v.trim() === "" || isValidCpf(v), {
+    message: "CPF inválido. Verifique os dígitos.",
+  }),
+  address: z
+    .string()
+    .trim()
+    .min(5, "Informe o endereço completo.")
+    .max(500, "Endereço muito longo."),
+  residenceYears: z
+    .number({ message: "Anos de residência inválidos." })
+    .int("Anos de residência inválidos.")
+    .min(0, "Anos de residência inválidos.")
+    .max(130, "Anos de residência inválidos."),
+  residenceMonths: z
+    .number({ message: "Meses de residência inválidos." })
+    .int("Meses de residência inválidos.")
+    .min(0, "Meses de residência inválidos.")
+    .max(11, "Use meses de 0 a 11."),
+});
+
+export type DeclarationCreateInput = z.infer<typeof declarationCreateSchema>;
+
 export const settingsSaveSchema = z.object({
   association: z
     .object({
       name: z.string().max(160),
       acronym: z.string().max(20),
+      cnpj: z.string().max(20),
       address: z.string().max(200),
       phone: z.string().max(40),
       email: z.string().max(160),
@@ -139,6 +168,18 @@ export const settingsSaveSchema = z.object({
           x: z.number().min(0).max(600),
           y: z.number().min(0).max(378),
           width: z.number().min(1).max(600),
+        })
+        .nullable(),
+    })
+    .partial(),
+  declaration: z
+    .object({
+      // Area util do A4 (170x261 mm) em px logicos, com folga de arredondamento.
+      signaturePlacement: z
+        .object({
+          x: z.number().min(0).max(650),
+          y: z.number().min(0).max(1000),
+          width: z.number().min(1).max(650),
         })
         .nullable(),
     })

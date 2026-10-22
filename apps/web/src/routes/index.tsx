@@ -8,6 +8,9 @@ import { MembersPage } from "@/features/members/MembersPage";
 import { MemberFormPage } from "@/features/members/MemberFormPage";
 import { MemberDetailPage } from "@/features/members/MemberDetailPage";
 import { CardsPage } from "@/features/cards/CardsPage";
+import { DeclarationsPage } from "@/features/declarations/DeclarationsPage";
+import { DeclarationFormPage } from "@/features/declarations/DeclarationFormPage";
+import { DeclarationDetailPage } from "@/features/declarations/DeclarationDetailPage";
 import { UsersPage } from "@/features/users/UsersPage";
 import { PermissionsPage } from "@/features/users/PermissionsPage";
 import { SettingsLayout } from "@/features/settings/SettingsLayout";
@@ -66,6 +69,25 @@ export const router = createBrowserRouter([
             path: "carteirinhas",
             element: <PermissionRoute permission="cards.view" />,
             children: [{ index: true, element: <CardsPage /> }],
+          },
+          {
+            path: "declaracoes",
+            children: [
+              {
+                element: <PermissionRoute permission="declarations.view" />,
+                children: [{ index: true, element: <DeclarationsPage /> }],
+              },
+              {
+                path: "nova",
+                element: <PermissionRoute permission="declarations.create" />,
+                children: [{ index: true, element: <DeclarationFormPage /> }],
+              },
+              {
+                path: ":id",
+                element: <PermissionRoute permission="declarations.view" />,
+                children: [{ index: true, element: <DeclarationDetailPage /> }],
+              },
+            ],
           },
           {
             path: "usuarios",

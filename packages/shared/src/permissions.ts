@@ -10,6 +10,11 @@ export type Permission =
   | "cards.view"
   | "cards.generate"
   | "cards.download"
+  | "declarations.view"
+  | "declarations.create"
+  | "declarations.inactivate"
+  | "declarations.reactivate"
+  | "declarations.delete"
   | "settings.view"
   | "settings.edit"
   | "audit.view";
@@ -25,6 +30,11 @@ export const ALL_PERMISSIONS: Permission[] = [
   "cards.view",
   "cards.generate",
   "cards.download",
+  "declarations.view",
+  "declarations.create",
+  "declarations.inactivate",
+  "declarations.reactivate",
+  "declarations.delete",
   "settings.view",
   "settings.edit",
   "audit.view",
@@ -65,6 +75,18 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { key: "cards.view", label: "Visualizar carteirinhas" },
       { key: "cards.generate", label: "Gerar carteirinhas" },
       { key: "cards.download", label: "Baixar carteirinhas" },
+    ],
+  },
+  {
+    key: "declarations",
+    label: "Declarações",
+    description: "Emissão e impressão de declarações de residência",
+    permissions: [
+      { key: "declarations.view", label: "Visualizar declarações" },
+      { key: "declarations.create", label: "Emitir declarações" },
+      { key: "declarations.inactivate", label: "Inativar declarações" },
+      { key: "declarations.reactivate", label: "Reativar declarações" },
+      { key: "declarations.delete", label: "Excluir declarações" },
     ],
   },
   {

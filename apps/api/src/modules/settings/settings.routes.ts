@@ -27,6 +27,12 @@ settingsRouter.patch(
   settingsController.updateCard,
 );
 settingsRouter.patch(
+  "/declaration",
+  requireAuth,
+  requirePermission("settings.edit"),
+  settingsController.updateDeclaration,
+);
+settingsRouter.patch(
   "/security",
   requireAuth,
   requirePermission("settings.edit"),

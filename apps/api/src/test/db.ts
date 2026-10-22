@@ -7,10 +7,11 @@ export function createTestClient(): PrismaClient {
   return new PrismaClient({ datasourceUrl: TEST_DATABASE_URL });
 }
 
-/** Limpa as 7 tabelas entre testes (sem FKs — qualquer ordem serve). */
+/** Limpa as 8 tabelas entre testes (sem FKs — qualquer ordem serve). */
 export async function resetDatabase(db: PrismaClient): Promise<void> {
   await db.$transaction([
     db.auditLog.deleteMany(),
+    db.residenceDeclaration.deleteMany(),
     db.membershipCard.deleteMany(),
     db.member.deleteMany(),
     db.setting.deleteMany(),

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -78,8 +78,10 @@ export function MembersPage() {
   const toast = useToast();
   const confirm = useConfirm();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [tab, setTab] = useState<MemberStatus>("ATIVO");
+  const tab: MemberStatus =
+    searchParams.get("status") === "INATIVO" ? "INATIVO" : "ATIVO";
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -267,8 +269,15 @@ export function MembersPage() {
                 aria-selected={active}
                 data-testid={`tab-${key}`}
                 onClick={() => {
-                  setTab(key);
                   setPage(1);
+                  setSearchParams(
+                    (current) => {
+                      const next = new URLSearchParams(current);
+                      next.set("status", key);
+                      return next;
+                    },
+                    { replace: true }
+                  );
                 }}
                 className={cn(
                   "-mb-px flex items-center gap-2 rounded-t-lg border-b-2 px-4 py-2.5 text-sm font-semibold transition focus-ring",

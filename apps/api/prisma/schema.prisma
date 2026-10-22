@@ -87,7 +87,7 @@ model MembershipCard {
   @@map("cards")
 }
 
-// Auditoria (AuditLog em @amococ/shared). Os 19 eventos (AuditAction) passam
+// Auditoria (AuditLog em @amococ/shared). Os 24 eventos (AuditAction) passam
 // a ser validados no servidor na Fase 5; aqui o campo é texto livre.
 model AuditLog {
   id        String   @id @default(cuid())
@@ -114,6 +114,28 @@ model Session {
   createdAt   DateTime  @default(now())
 
   @@map("sessions")
+}
+
+// Declarações de residência emitidas (ResidenceDeclaration em @amococ/shared).
+// Sem FKs — mesmo padrão das demais tabelas. O documento é renderizado a
+// partir destes campos (nada de PDF/PNG congelado), permitindo reimpressão.
+model ResidenceDeclaration {
+  id              String    @id
+  residentName    String
+  birthDate       String
+  cpf             String
+  address         String    @db.Text
+  residenceYears  Int
+  residenceMonths Int
+  issuedAt        DateTime  @default(now())
+  issuedByUserId  String
+  issuedByName    String
+  status          String    @default("ATIVO")
+  inactivatedAt   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("residenceDeclarations")
 }
 
 // Configurações — registro único (id "general"). Os blocos aninhados

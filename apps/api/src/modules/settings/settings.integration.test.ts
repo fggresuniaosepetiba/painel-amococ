@@ -45,6 +45,25 @@ describe("configurações", () => {
     expect(log).toBeTruthy();
   });
 
+  it("atualiza a posição da assinatura na declaração + SETTINGS_UPDATED", async () => {
+    const placement = { x: 120, y: 780, width: 240 };
+    const saved = await settingsService.updateDeclaration(
+      { signaturePlacement: placement },
+      ACTOR,
+      db,
+    );
+    expect(saved.declaration.signaturePlacement).toEqual(placement);
+    // Não mexe na posição da carteirinha.
+    expect(saved.card.signaturePlacement).toBeNull();
+    const log = await db.auditLog.findFirst({
+      where: {
+        action: "SETTINGS_UPDATED",
+        details: { contains: "declaração" },
+      },
+    });
+    expect(log).toBeTruthy();
+  });
+
   it("assinatura define updatedAt e gera SIGNATURE_UPDATED", async () => {
     const saved = await settingsService.saveSignature(
       {

@@ -1,8 +1,12 @@
 import { z } from "zod";
+import { isValidCnpj } from "@/utils/format";
 
 export const associationSettingsSchema = z.object({
   name: z.string().min(3, "Informe o nome da associação.").max(160),
   acronym: z.string().min(2, "Informe a sigla.").max(20),
+  cnpj: z.string().refine((v) => v.trim() === "" || isValidCnpj(v), {
+    message: "CNPJ inválido. Verifique os dígitos.",
+  }),
   address: z.string().max(200),
   phone: z.string().max(30),
   email: z.string().refine((v) => v === "" || z.string().email().safeParse(v).success, {
