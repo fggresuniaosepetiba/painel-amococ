@@ -4,3 +4,6 @@ dist
 *.local
 *.tsbuildinfo
 .DS_Store
+
+# artefatos do Playwright MCP (screenshots/snapshots de sessão)
+.playwright-mcp/
