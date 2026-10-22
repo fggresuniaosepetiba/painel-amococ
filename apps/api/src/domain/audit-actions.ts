@@ -1,6 +1,6 @@
 import type { AuditAction } from "@amococ/shared";
 
-// Espelho RUNTIME dos 18 eventos de AuditAction (fonte: packages/shared/src/types.ts).
+// Espelho RUNTIME dos 19 eventos de AuditAction (fonte: packages/shared/src/types.ts).
 export const AUDIT_ACTIONS: AuditAction[] = [
   "LOGIN",
   "LOGOUT",
@@ -15,6 +15,7 @@ export const AUDIT_ACTIONS: AuditAction[] = [
   "USER_UPDATED",
   "USER_INACTIVATED",
   "USER_REACTIVATED",
+  "USER_DELETED",
   "PERMISSION_CHANGED",
   "SETTINGS_UPDATED",
   "SIGNATURE_UPDATED",

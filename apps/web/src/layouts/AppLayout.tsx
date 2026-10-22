@@ -33,7 +33,9 @@ interface NavItem {
   to: string;
   label: string;
   icon: typeof LayoutDashboard;
-  permission: Permission;
+  permission?: Permission;
+  /** Área exclusiva do perfil SuperAdmin (ADR-025). */
+  superAdminOnly?: boolean;
   end?: boolean;
 }
 
@@ -76,12 +78,12 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Administração",
     items: [
-      { to: "/usuarios", label: "Usuários", icon: UserSquare2, permission: "users.view" },
+      { to: "/usuarios", label: "Usuários", icon: UserSquare2, superAdminOnly: true },
       {
         to: "/usuarios/permissoes",
         label: "Permissões",
         icon: ShieldCheck,
-        permission: "users.permissions",
+        superAdminOnly: true,
       },
       {
         to: "/configuracoes",
@@ -124,14 +126,21 @@ function Brand({ compact = false }: { compact?: boolean }) {
 }
 
 function SidebarNav() {
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const isSuperAdmin = user?.role === "SUPERADMIN";
   const groups = useMemo(
     () =>
       NAV_GROUPS.map((group) => ({
         ...group,
-        items: group.items.filter((item) => hasPermission(item.permission)),
+        items: group.items.filter((item) =>
+          item.superAdminOnly
+            ? isSuperAdmin
+            : item.permission
+              ? hasPermission(item.permission)
+              : true
+        ),
       })).filter((group) => group.items.length > 0),
-    [hasPermission]
+    [hasPermission, isSuperAdmin]
   );
 
   return (

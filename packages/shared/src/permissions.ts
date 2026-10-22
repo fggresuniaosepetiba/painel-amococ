@@ -10,11 +10,6 @@ export type Permission =
   | "cards.view"
   | "cards.generate"
   | "cards.download"
-  | "users.view"
-  | "users.create"
-  | "users.edit"
-  | "users.inactivate"
-  | "users.permissions"
   | "settings.view"
   | "settings.edit"
   | "audit.view";
@@ -30,11 +25,6 @@ export const ALL_PERMISSIONS: Permission[] = [
   "cards.view",
   "cards.generate",
   "cards.download",
-  "users.view",
-  "users.create",
-  "users.edit",
-  "users.inactivate",
-  "users.permissions",
   "settings.view",
   "settings.edit",
   "audit.view",
@@ -75,18 +65,6 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { key: "cards.view", label: "Visualizar carteirinhas" },
       { key: "cards.generate", label: "Gerar carteirinhas" },
       { key: "cards.download", label: "Baixar carteirinhas" },
-    ],
-  },
-  {
-    key: "users",
-    label: "Usuários",
-    description: "Gestão de usuários e permissões",
-    permissions: [
-      { key: "users.view", label: "Visualizar usuários" },
-      { key: "users.create", label: "Criar usuários" },
-      { key: "users.edit", label: "Editar usuários" },
-      { key: "users.inactivate", label: "Inativar usuários" },
-      { key: "users.permissions", label: "Gerenciar permissões" },
     ],
   },
   {

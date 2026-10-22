@@ -145,4 +145,13 @@ export const usersController = {
       sendError(res, err);
     }
   },
+
+  async remove(req: Request, res: Response): Promise<void> {
+    try {
+      await usersService.delete(req.params.id!, reqUser(req), dbOf(req));
+      res.status(200).json({ status: "ok", data: { deleted: true } });
+    } catch (err) {
+      sendError(res, err);
+    }
+  },
 };

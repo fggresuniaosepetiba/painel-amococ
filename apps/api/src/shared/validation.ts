@@ -69,7 +69,12 @@ export const userDraftSchema = z.object({
   initialPassword: z.string().min(1, "Informe a senha inicial."),
 });
 
-export const userUpdateSchema = userDraftSchema.omit({ initialPassword: true });
+// Status é imutável na edição: o ciclo de vida só muda em POST /:id/status
+// (auditoria dedicada e bloqueio de auto-inativação).
+export const userUpdateSchema = userDraftSchema.omit({
+  initialPassword: true,
+  status: true,
+});
 
 export const userStatusSchema = z.object({
   status: z.enum(USER_STATUSES),

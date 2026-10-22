@@ -34,6 +34,7 @@ const ACTIONS: { value: AuditAction | "ALL"; label: string }[] = [
   { value: "USER_UPDATED", label: "Usuário editado" },
   { value: "USER_INACTIVATED", label: "Usuário inativado" },
   { value: "USER_REACTIVATED", label: "Usuário reativado" },
+  { value: "USER_DELETED", label: "Usuário excluído" },
   { value: "PERMISSION_CHANGED", label: "Permissão alterada" },
   { value: "SETTINGS_UPDATED", label: "Configuração alterada" },
   { value: "SIGNATURE_UPDATED", label: "Assinatura alterada" },

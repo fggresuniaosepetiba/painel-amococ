@@ -87,4 +87,12 @@ export const usersRepository = {
       throw new Error("USER_NOT_FOUND");
     }
   },
+
+  async delete(db: Db, id: string): Promise<void> {
+    try {
+      await db.user.delete({ where: { id } });
+    } catch {
+      throw new Error("USER_NOT_FOUND");
+    }
+  },
 };

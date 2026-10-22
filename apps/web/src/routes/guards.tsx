@@ -26,32 +26,41 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
+/** Bloqueio visual padrão de acesso restrito. */
+function RestrictedAccess() {
+  return (
+    <div className="mx-auto mt-12 max-w-md animate-fade-in">
+      <div className="surface-card flex flex-col items-center gap-4 px-6 py-10 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+          <ShieldAlert className="h-7 w-7" />
+        </span>
+        <div>
+          <h1 className="text-lg font-bold text-slate-900">Acesso restrito</h1>
+          <p className="mt-1.5 text-sm text-slate-500">
+            Você não possui permissão para acessar esta área. Se necessário,
+            procure o administrador do sistema.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <a href="/dashboard">Voltar ao dashboard</a>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /** Exige uma permissão específica (camada centralizada de autorização). */
 export function RequirePermission({ permission }: { permission: Permission }) {
   const { user, hasPermission } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (!hasPermission(permission)) {
-    return (
-      <div className="mx-auto mt-12 max-w-md animate-fade-in">
-        <div className="surface-card flex flex-col items-center gap-4 px-6 py-10 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
-            <ShieldAlert className="h-7 w-7" />
-          </span>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">
-              Acesso restrito
-            </h1>
-            <p className="mt-1.5 text-sm text-slate-500">
-              Você não possui permissão para acessar esta área. Se necessário,
-              procure o administrador do sistema.
-            </p>
-          </div>
-          <Button asChild variant="outline">
-            <a href="/dashboard">Voltar ao dashboard</a>
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (!hasPermission(permission)) return <RestrictedAccess />;
+  return <Outlet />;
+}
+
+/** Exige perfil SuperAdmin (área de usuários e permissões — ADR-025). */
+export function RequireSuperAdmin() {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "SUPERADMIN") return <RestrictedAccess />;
   return <Outlet />;
 }

@@ -1,5 +1,6 @@
 import type { Permission, PublicUser, UserStatus } from "@amococ/shared";
 import { prisma } from "../../lib/prisma.js";
+import { ApiError } from "../../shared/api-error.js";
 import { logAudit } from "../../shared/audit.js";
 import type { Actor } from "../../shared/actor.js";
 import { SYSTEM_ACTOR } from "../../shared/actor.js";
@@ -71,7 +72,7 @@ export const usersService = {
 
   async update(
     id: string,
-    draft: Omit<UserCreateInput, "initialPassword" | "actor">,
+    draft: Omit<UserCreateInput, "initialPassword" | "actor" | "status">,
     actor?: Actor | null,
     db: Db = prisma,
   ): Promise<PublicUser> {
@@ -90,7 +91,6 @@ export const usersService = {
       login,
       email: draft.email.trim(),
       role: draft.role,
-      status: draft.status,
       permissions: draft.permissions,
       updatedAt: new Date().toISOString(),
     });
@@ -182,6 +182,41 @@ export const usersService = {
       entity: "user",
       entityId: id,
       details: `Senha redefinida pelo administrador para "${existing.login}"`,
+    });
+  },
+
+  /**
+   * EXCLUSÃO DEFINITIVA — somente INATIVOS, sem restauração. Regra de status
+   * superior à autorização (que já é exclusiva do SuperAdmin). Apaga as
+   * sessões antes do usuário; o histórico de auditoria é preservado.
+   */
+  async delete(id: string, actor?: Actor | null, db: Db = prisma): Promise<void> {
+    const who = actor ?? SYSTEM_ACTOR;
+    const existing = await usersRepository.getById(db, id);
+    if (!existing) throw new Error("USER_NOT_FOUND");
+
+    if (who.id !== SYSTEM_ACTOR.id && existing.id === who.id) {
+      throw new Error("CANNOT_DELETE_SELF");
+    }
+
+    if (existing.status === "ATIVO") {
+      throw new ApiError(
+        422,
+        "ACTIVE_USER_DELETE",
+        "Usuários ativos não podem ser excluídos. Inative o usuário primeiro.",
+      );
+    }
+
+    await db.session.deleteMany({ where: { userId: id } });
+    await usersRepository.delete(db, id);
+
+    await logAudit(db, {
+      userId: who.id === SYSTEM_ACTOR.id ? null : who.id,
+      userName: who.name,
+      action: "USER_DELETED",
+      entity: "user",
+      entityId: id,
+      details: `Usuário "${existing.name}" (${existing.login}) excluído definitivamente — perfil ${existing.role}, ID ${id}`,
     });
   },
 };

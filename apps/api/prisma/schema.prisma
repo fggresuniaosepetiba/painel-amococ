@@ -87,7 +87,7 @@ model MembershipCard {
   @@map("cards")
 }
 
-// Auditoria (AuditLog em @amococ/shared). Os 18 eventos (AuditAction) passam
+// Auditoria (AuditLog em @amococ/shared). Os 19 eventos (AuditAction) passam
 // a ser validados no servidor na Fase 5; aqui o campo é texto livre.
 model AuditLog {
   id        String   @id @default(cuid())

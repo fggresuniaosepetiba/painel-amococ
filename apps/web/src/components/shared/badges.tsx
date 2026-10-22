@@ -63,6 +63,7 @@ const ACTION_LABELS: Record<string, { label: string; variant: string }> = {
   USER_UPDATED: { label: "Usuário editado", variant: "info" },
   USER_INACTIVATED: { label: "Usuário inativado", variant: "warning" },
   USER_REACTIVATED: { label: "Usuário reativado", variant: "success" },
+  USER_DELETED: { label: "Usuário excluído", variant: "danger" },
   PERMISSION_CHANGED: { label: "Permissões alteradas", variant: "gold" },
   SETTINGS_UPDATED: { label: "Configurações alteradas", variant: "info" },
   SIGNATURE_UPDATED: { label: "Assinatura atualizada", variant: "gold" },

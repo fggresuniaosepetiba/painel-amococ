@@ -36,6 +36,8 @@ export interface UsersRepository {
    * demais campos → `PATCH /:id`.
    */
   update(id: string, patch: UserPatch): Promise<User>;
+  /** Exclusão definitiva (somente usuário INATIVO — validada no service). */
+  delete(id: string): Promise<void>;
 }
 
 /** Entrada de criação de usuário (sem id/hash — gerados no servidor). */

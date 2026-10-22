@@ -98,6 +98,10 @@ export class ApiUsersRepository implements UsersRepository {
     );
   }
 
+  async delete(id: string): Promise<void> {
+    await api(`/api/users/${id}`, { method: "DELETE" });
+  }
+
   private async getByIdOrThrow(id: string): Promise<User> {
     const user = await this.getById(id);
     if (!user) throw new Error("USER_NOT_FOUND");

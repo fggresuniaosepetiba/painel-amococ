@@ -13,8 +13,8 @@ export interface UserDraft {
   initialPassword: string;
 }
 
-function assertPermission(user: PublicUser, permission: Parameters<typeof authorizationService.hasPermission>[1]): void {
-  if (!authorizationService.hasPermission(user, permission)) {
+function assertSuperAdmin(user: PublicUser): void {
+  if (!authorizationService.isSuperAdmin(user)) {
     throw new Error("FORBIDDEN");
   }
 }
@@ -30,7 +30,7 @@ export const userService = {
   },
 
   async create(actor: PublicUser, draft: UserDraft): Promise<PublicUser> {
-    assertPermission(actor, "users.create");
+    assertSuperAdmin(actor);
     const login = draft.login.trim().toLowerCase();
     const existing = await usersRepository.getByLogin(login);
     if (existing) throw new Error("LOGIN_ALREADY_EXISTS");
@@ -51,9 +51,9 @@ export const userService = {
   async update(
     actor: PublicUser,
     id: string,
-    draft: Omit<UserDraft, "initialPassword">
+    draft: Omit<UserDraft, "initialPassword" | "status">
   ): Promise<PublicUser> {
-    assertPermission(actor, "users.edit");
+    assertSuperAdmin(actor);
     const existing = await usersRepository.getById(id);
     if (!existing) throw new Error("USER_NOT_FOUND");
 
@@ -68,7 +68,6 @@ export const userService = {
       login,
       email: draft.email.trim(),
       role: draft.role,
-      status: draft.status,
       permissions: draft.permissions,
     });
     return authService_toPublic(updated);
@@ -79,7 +78,7 @@ export const userService = {
     id: string,
     status: UserStatus
   ): Promise<PublicUser> {
-    assertPermission(actor, "users.inactivate");
+    assertSuperAdmin(actor);
     const existing = await usersRepository.getById(id);
     if (!existing) throw new Error("USER_NOT_FOUND");
     if (existing.id === actor.id && status === "INATIVO") {
@@ -96,7 +95,7 @@ export const userService = {
     id: string,
     permissions: Permission[]
   ): Promise<PublicUser> {
-    assertPermission(actor, "users.permissions");
+    assertSuperAdmin(actor);
     const existing = await usersRepository.getById(id);
     if (!existing) throw new Error("USER_NOT_FOUND");
     const updated = await usersRepository.update(id, {
@@ -110,11 +109,21 @@ export const userService = {
     id: string,
     newPassword: string
   ): Promise<void> {
-    assertPermission(actor, "users.edit");
+    assertSuperAdmin(actor);
     const existing = await usersRepository.getById(id);
     if (!existing) throw new Error("USER_NOT_FOUND");
     // Senha em texto plano até o repository (hash + auditoria no servidor).
     await usersRepository.update(id, { newPassword });
+  },
+
+  async delete(actor: PublicUser, id: string): Promise<void> {
+    assertSuperAdmin(actor);
+    const existing = await usersRepository.getById(id);
+    if (!existing) throw new Error("USER_NOT_FOUND");
+    if (existing.id === actor.id) throw new Error("CANNOT_DELETE_SELF");
+    if (existing.status === "ATIVO") throw new Error("ACTIVE_USER_DELETE");
+    // Exclusão definitiva no servidor (sessões apagadas + auditoria).
+    await usersRepository.delete(id);
   },
 };
 

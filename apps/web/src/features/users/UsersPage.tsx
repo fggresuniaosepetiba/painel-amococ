@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  Trash2,
   UserSquare2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/AuthProvider";
@@ -63,7 +64,7 @@ import type { User } from "@amococ/shared";
 type DialogMode = "create" | "edit" | null;
 
 export function UsersPage() {
-  const { user: actor, hasPermission } = useAuth();
+  const { user: actor } = useAuth();
   const toast = useToast();
   const confirm = useConfirm();
 
@@ -139,23 +140,55 @@ export function UsersPage() {
     }
   };
 
+  const handleDelete = async (target: User) => {
+    if (!actor) return;
+    const ok = await confirm({
+      title: `Excluir definitivamente ${target.name}?`,
+      message: `Esta ação não pode ser desfeita. O usuário "${target.login}" será removido do sistema e não poderá ser recuperado — será necessário criar um novo usuário. O histórico de auditoria é preservado.`,
+      confirmLabel: "Excluir definitivamente",
+      variant: "danger",
+    });
+    if (!ok) return;
+    try {
+      await userService.delete(actor, target.id);
+      await load();
+      toast.success(
+        "Usuário excluído",
+        `"${target.login}" foi removido definitivamente.`
+      );
+    } catch (err) {
+      const code = err instanceof Error ? err.message : "";
+      if (code === "ACTIVE_USER_DELETE") {
+        toast.error(
+          "Usuário ativo",
+          "Inative o usuário antes de excluí-lo definitivamente."
+        );
+      } else if (code === "CANNOT_DELETE_SELF") {
+        toast.error(
+          "Operação não permitida",
+          "Você não pode excluir o próprio usuário."
+        );
+      } else {
+        toast.error("Não foi possível excluir", "Tente novamente.");
+      }
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
         title="Usuários"
         description="Usuários administrativos do painel, papéis e acesso."
         actions={
-          hasPermission("users.create") ? (
-            <Button
-              onClick={() => {
-                setEditingUser(null);
-                setDialogMode("create");
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              Novo usuário
-            </Button>
-          ) : undefined
+          <Button
+            onClick={() => {
+              setEditingUser(null);
+              setDialogMode("create");
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Novo usuário
+          </Button>
         }
       />
 
@@ -239,15 +272,13 @@ export function UsersPage() {
                       <UserRowActions
                         target={user}
                         isSelf={user.id === actor?.id}
-                        canEdit={hasPermission("users.edit")}
-                        canInactivate={hasPermission("users.inactivate")}
-                        canPermissions={hasPermission("users.permissions")}
                         onEdit={() => {
                           setEditingUser(user);
                           setDialogMode("edit");
                         }}
                         onReset={() => setResetUser(user)}
                         onToggle={() => void handleToggleStatus(user)}
+                        onDelete={() => void handleDelete(user)}
                       />
                     </TableCell>
                   </TableRow>
@@ -295,22 +326,18 @@ export function UsersPage() {
 function UserRowActions({
   target,
   isSelf,
-  canEdit,
-  canInactivate,
   onEdit,
   onReset,
   onToggle,
+  onDelete,
 }: {
   target: User;
   isSelf: boolean;
-  canEdit: boolean;
-  canInactivate: boolean;
-  canPermissions: boolean;
   onEdit: () => void;
   onReset: () => void;
   onToggle: () => void;
+  onDelete: () => void;
 }) {
-  void target;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -322,19 +349,19 @@ function UserRowActions({
           <MoreHorizontal className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem onSelect={onEdit} disabled={!canEdit}>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onSelect={onEdit}>
           <PencilLine className="h-4 w-4" />
           Editar
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onReset} disabled={!canEdit}>
+        <DropdownMenuItem onSelect={onReset}>
           <KeyRound className="h-4 w-4" />
           Redefinir senha
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           danger={!isSelf && target.status === "ATIVO"}
-          disabled={!canInactivate || isSelf}
+          disabled={isSelf}
           onSelect={onToggle}
         >
           {target.status === "ATIVO" ? (
@@ -348,6 +375,14 @@ function UserRowActions({
               Reativar
             </>
           )}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          danger
+          disabled={isSelf || target.status === "ATIVO"}
+          onSelect={onDelete}
+        >
+          <Trash2 className="h-4 w-4" />
+          Excluir definitivamente
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -411,7 +446,6 @@ function UserFormDialog({
           login: values.login,
           email: values.email,
           role: values.role,
-          status: values.status,
           permissions: values.permissions as Permission[],
         });
         toast.success("Usuário atualizado");
@@ -479,13 +513,15 @@ function UserFormDialog({
                 </Select>
                 <FieldError message={errors.role?.message} />
               </div>
-              <div>
-                <FieldLabel required>Status</FieldLabel>
-                <Select {...register("status")}>
-                  <option value="ATIVO">Ativo</option>
-                  <option value="INATIVO">Inativo</option>
-                </Select>
-              </div>
+              {isCreate && (
+                <div>
+                  <FieldLabel required>Status</FieldLabel>
+                  <Select {...register("status")}>
+                    <option value="ATIVO">Ativo</option>
+                    <option value="INATIVO">Inativo</option>
+                  </Select>
+                </div>
+              )}
             </div>
             {isCreate && (
               <div>

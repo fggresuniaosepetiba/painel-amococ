@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import type { Permission } from "@amococ/shared";
 import { AppLayout } from "@/layouts/AppLayout";
-import { RequireAuth, RequirePermission } from "./guards";
+import { RequireAuth, RequirePermission, RequireSuperAdmin } from "./guards";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { MembersPage } from "@/features/members/MembersPage";
@@ -71,12 +71,12 @@ export const router = createBrowserRouter([
             path: "usuarios",
             children: [
               {
-                element: <PermissionRoute permission="users.view" />,
+                element: <RequireSuperAdmin />,
                 children: [{ index: true, element: <UsersPage /> }],
               },
               {
                 path: "permissoes",
-                element: <PermissionRoute permission="users.permissions" />,
+                element: <RequireSuperAdmin />,
                 children: [{ index: true, element: <PermissionsPage /> }],
               },
             ],

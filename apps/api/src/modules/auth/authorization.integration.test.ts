@@ -11,6 +11,7 @@ import { createId } from "../../shared/ids.js";
 import { passwordHasher } from "../users/password-hasher.js";
 import { usersRepository } from "../users/users.repository.js";
 import { membersService } from "../members/members.service.js";
+import { usersService } from "../users/users.service.js";
 import { signAccessToken } from "./tokens.js";
 
 // Matriz de autorização §6 (server-side, espelho do frontend):
@@ -158,36 +159,47 @@ const ROWS: MatrixRow[] = [
     permission: "cards.download",
     body: () => ({}),
   },
-  { name: "GET /api/users", method: "get", path: () => "/api/users", permission: "users.view" },
-  { name: "GET /api/users/:id", method: "get", path: () => `/api/users/${otherUserId}`, permission: "users.view" },
-  { name: "POST /api/users", method: "post", path: () => "/api/users", permission: "users.create", body: userDraftBody },
+  { name: "GET /api/users (só SUPERADMIN)", method: "get", path: () => "/api/users", permission: "SUPERADMIN_ONLY" },
+  { name: "GET /api/users/:id (só SUPERADMIN)", method: "get", path: () => `/api/users/${otherUserId}`, permission: "SUPERADMIN_ONLY" },
+  { name: "POST /api/users (só SUPERADMIN)", method: "post", path: () => "/api/users", permission: "SUPERADMIN_ONLY", body: userDraftBody },
   {
-    name: "PATCH /api/users/:id",
+    name: "PATCH /api/users/:id (só SUPERADMIN)",
     method: "patch",
     path: () => `/api/users/${otherUserId}`,
-    permission: "users.edit",
+    permission: "SUPERADMIN_ONLY",
     body: () => ({ ...userDraftBody(), initialPassword: undefined }),
   },
   {
-    name: "POST /api/users/:id/status",
+    name: "POST /api/users/:id/status (só SUPERADMIN)",
     method: "post",
     path: () => `/api/users/${otherUserId}/status`,
-    permission: "users.inactivate",
+    permission: "SUPERADMIN_ONLY",
     body: () => ({ status: "INATIVO" }),
   },
   {
-    name: "PUT /api/users/:id/permissions",
+    name: "PUT /api/users/:id/permissions (só SUPERADMIN)",
     method: "put",
     path: () => `/api/users/${otherUserId}/permissions`,
-    permission: "users.permissions",
+    permission: "SUPERADMIN_ONLY",
     body: () => ({ permissions: ["members.view"] }),
   },
   {
-    name: "POST /api/users/:id/reset-password",
+    name: "POST /api/users/:id/reset-password (só SUPERADMIN)",
     method: "post",
     path: () => `/api/users/${otherUserId}/reset-password`,
-    permission: "users.edit",
+    permission: "SUPERADMIN_ONLY",
     body: () => ({ newPassword: "nova-senha-789" }),
+  },
+  {
+    name: "DELETE /api/users/:id (só SUPERADMIN)",
+    method: "delete",
+    path: () => `/api/users/${otherUserId}`,
+    permission: "SUPERADMIN_ONLY",
+    body: () => ({}),
+    prepare: () =>
+      usersService
+        .setStatus(otherUserId, "INATIVO", { id: "matrix", name: "matrix" }, db)
+        .then(() => undefined),
   },
   { name: "GET /api/settings", method: "get", path: () => "/api/settings", permission: "settings.view" },
   {
