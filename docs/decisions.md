@@ -62,8 +62,8 @@ banco de desenvolvimento.
 ## ADR-012 — `@amococ/shared` só como tipo na API
 
 O shared não é compilado; import runtime quebraria `node dist/`. Só `import type`
-(verificado por `src/test/shared-imports.test.ts`). Listas runtime (18 permissões,
-18 eventos) são espelhos documentados — replicar mudanças do shared.
+(verificado por `src/test/shared-imports.test.ts`). Listas runtime (13 permissões,
+19 eventos) são espelhos documentados — replicar mudanças do shared.
 
 ## ADR-013 — Semântica do import (Fase 3)
 Upsert por chave natural (users: id→login; members: id; cards: cardCode+memberId;
@@ -193,4 +193,43 @@ Vocabulário: campo e coluna de tabela são **Perfil** (o antigo "Role");
 `ROLE_LABELS` (`SuperAdmin`, `Administrador`, `Colaborador`), evitando
 divergência entre telas. `role=` de ARIA permanece intacto — é semântica
 HTML, não o conceito de domínio.
+
+## ADR-025 — Área de usuários exclusiva do SuperAdmin + exclusão definitiva
+
+**Decisão:** Usuários e Permissões deixam de ser permissões granulares e
+passam a ser **exclusivas do perfil `SUPERADMIN`** (menu, rotas e API).
+Foram removidas as 5 permissões `users.*`: a matriz caiu de 18 para 13 e a
+auditoria ganhou `USER_DELETED` (18 → 19 eventos). Endpoints afetados:
+listar, detalhar, criar, editar, status, permissões, redefinir senha e
+excluir — todos com `requireAuth + requireSuperAdmin`, retornando 403 a
+qualquer outro perfil mesmo que ainda tenha arrays antigos gravados.
+
+**Por quê:** o pedido de negócio é "só e somente o SuperAdmin mexe em
+usuários". Manter permissões granulares sem efeito criaria uma falsa sensação
+de controle na tela de Permissões; removê-las exige migration que limpa
+`users.permissions` (`array_remove` de tudo que começa com `users.`),
+aplicada no deploy por `pnpm db:deploy`. O middleware `requireSuperAdmin` já
+existia (usado no factory-reset), então o reuso foi direto.
+
+**Exclusão definitiva:** disponível somente para usuário `INATIVO`
+(`422 ACTIVE_USER_DELETE` — "Usuários ativos não podem ser excluídos. Inative
+o usuário primeiro."), nunca para o próprio usuário (`CANNOT_DELETE_SELF`).
+A operação apaga as sessões (`session.deleteMany`), remove o usuário e grava
+`USER_DELETED` com nome, login, perfil e ID. **Não existe restauração**: para
+voltar, é preciso criar um novo usuário. A auditoria anterior é preservada
+(sem FK em `AuditLog.userId`/`MembershipCard.generatedByUserId`). Inativar e
+reativar seguem sendo o caminho reversível.
+
+**Ciclo de vida em um único caminho:** `PATCH /api/users/:id` não aceita mais
+`status` (schema remove o campo e o service não o grava). Inativar/reativar
+só por `POST /:id/status`, mantendo auditoria dedicada e o bloqueio de
+auto-inativação. Alterar `role` (inclusive `SUPERADMIN`) também é exclusivo
+do SuperAdmin por consequência do gate do endpoint, fechando a escalada de
+privilégio que existia via `users.edit`.
+
+**Testes:** matriz de autorização com os 8 endpoints como `SUPERADMIN_ONLY`
+(DELETE com `prepare` inativando o alvo), casos de serviço para ativo
+bloqueado, exclusão com sessões + auditoria, auto-exclusão, inexistente e
+imutabilidade do status na edição.
+
 

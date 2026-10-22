@@ -212,26 +212,29 @@ Padrão: **`AMOCOC-00001-A8ZK`** (prefixo + sequencial de 5 dígitos + sufixo al
 
 - Roles: `SUPERADMIN` (acesso total, ignorado pelas permissões), `ADMINISTRADOR`, `COLABORADOR`
 - Status `ATIVO`/`INATIVO` — usuário inativo **não consegue logar**
-- Permissões granulares (18), gerenciadas em **Usuários → Permissões**:
+- **Toda a área de Usuários e Permissões é exclusiva do `SUPERADMIN`** (ADR-025): menus, rotas e endpoints. Nenhum outro perfil cria, edita, inativa, reativa, exclui ou altera perfil de usuário, mesmo que ainda tenha permissões antigas gravadas.
+- Permissões granulares (13), gerenciadas em **Usuários → Permissões**:
 
 ```
 dashboard.view
 members.view | members.create | members.edit | members.inactivate
 members.reactivate | members.delete
 cards.view | cards.generate | cards.download
-users.view | users.create | users.edit | users.inactivate | users.permissions
 settings.view | settings.edit
 audit.view
 ```
 
 - A autorização é validada em **rotas, componentes e services** (`authorizationService`) — não apenas escondendo botões.
 - Para **excluir** um associado são necessárias **duas condições**: a permissão `members.delete` **e** o associado estar **INATIVO**. A regra de status é validada no service e **prevalece sobre a permissão**.
+- Usuário só pode ser **excluído definitivamente** quando estiver **INATIVO** (e nunca o próprio usuário). A exclusão apaga as sessões, preserva a auditoria e **não tem restauração** — para voltar, é preciso criar um novo usuário. Inativar/reativar continua sendo o caminho reversível.
 
 ---
 
 ## 11. Auditoria
 
-Eventos registrados: `LOGIN`, `LOGOUT`, `MEMBER_CREATED`, `MEMBER_UPDATED`, `MEMBER_INACTIVATED`, `MEMBER_REACTIVATED`, `MEMBER_DELETED`, `CARD_GENERATED`, `CARD_DOWNLOADED`, `USER_CREATED`, `USER_UPDATED`, `USER_INACTIVATED`, `USER_REACTIVATED`, `PERMISSION_CHANGED`, `SETTINGS_UPDATED`, `SIGNATURE_UPDATED`, `PASSWORD_CHANGED`, `SYSTEM_FACTORY_RESET`.
+Eventos registrados: `LOGIN`, `LOGOUT`, `MEMBER_CREATED`, `MEMBER_UPDATED`, `MEMBER_INACTIVATED`, `MEMBER_REACTIVATED`, `MEMBER_DELETED`, `CARD_GENERATED`, `CARD_DOWNLOADED`, `USER_CREATED`, `USER_UPDATED`, 
+`USER_INACTIVATED`, `USER_REACTIVATED`, `USER_DELETED`, `PERMISSION_CHANGED`, `SETTINGS_UPDATED`, `SIGNATURE_UPDATED`, 
+`PASSWORD_CHANGED`, `SYSTEM_FACTORY_RESET`.
 
 Cada registro guarda: usuário, data/hora, ação, entidade, ID e detalhes.
 
