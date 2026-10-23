@@ -35,7 +35,7 @@ Decisões: ADR-022, ADR-023. Fase 5 em `docs/reports/005-fase-5-auth.md`.
 ## Verificação ponta a ponta (pós-deploy)
 
 - `POST /api/system/seed` → 200 `{"seeded":true,"demo":false}`.
-- `POST /api/auth/login` (`amococ`) → 200 com `accessToken` (JWT 15 min),
+- `POST /api/auth/login` (SuperAdmin `amococ`, senha do seed) → 200 com `accessToken` (JWT 15 min),
   `refreshToken` opaco, `expiresIn: 900`; health 200 após (sem crash).
 - Playwright no Vercel: login → `/dashboard` ("Boa noite, Administrador",
   auditoria com os LOGINs, toast "Bem-vindo!"), **0 erros de console**.

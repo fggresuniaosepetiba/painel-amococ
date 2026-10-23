@@ -28,7 +28,8 @@ Funcionalidades: login/autorização · dashboard com dados reais · associados 
 imutável · carteirinha com código único e assinatura oficial · usuários e permissões ·
 configurações · auditoria completa · persistência local (IndexedDB).
 
-**Credencial inicial:** login `amococ` / senha do seed (SUPERADMIN).
+**Credencial inicial:** login `amococ` (SUPERADMIN). A senha inicial é definida no seed
+do backend (`INITIAL_SUPERADMIN_PASSWORD`) e **não é documentada** em nenhum `.md`.
 
 ---
 
@@ -283,7 +284,7 @@ Fonte: `AuditAction` em `packages/shared/src/types.ts`. **Nenhum pode ser removi
 
 ### 12.1 Produção (primeira utilização)
 
-- SuperAdmin inicial: **login `amococ` / senha do seed**, papel SUPERADMIN.
+- SuperAdmin inicial: **login `amococ`** (senha definida no seed), papel SUPERADMIN.
 - Assinatura oficial **já cadastrada** (asset oficial).
 - **Zero** associados, carteirinhas, usuários extras e auditoria
   (primeiro evento só aparece após o 1º LOGIN).
@@ -297,7 +298,7 @@ Fonte: `AuditAction` em `packages/shared/src/types.ts`. **Nenhum pode ser removi
 ### 12.3 LIMPAR (factory reset)
 
 - Restaura **exatamente** o estado de primeira utilização de produção, em **qualquer
-  ambiente**: `users=1` (amococ), `settings=1` (com assinatura oficial), demais
+  ambiente**: `users=1` (SuperAdmin `amococ` do seed), `settings=1` (com assinatura oficial), demais
   tabelas **zeradas**.
 - A demonstração **NÃO volta**.
 - Auditoria zerada; gera `SYSTEM_FACTORY_RESET`.

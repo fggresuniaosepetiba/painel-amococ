@@ -93,7 +93,7 @@ pnpm build     # gera apps/web/dist
 pnpm preview   # serve o build
 ```
 
-> **Deploy (ação manual sua):** suba o conteúdo da pasta `apps/web/dist/` no servidor/hospedagem estática. O cliente recebe o sistema em **estado de primeira utilização** (§13): SuperAdmin `amococ` + assinatura oficial já cadastrada e **sem nenhum associado, identificador utilizado, carteirinha ou dado de demonstração**. Verifique antes com `node scripts/verify-deploy-clean.mjs`. **No Vercel**, o `vercel.json` da raiz já aponta `installCommand`/`buildCommand`/`outputDirectory` para o monorepo (`apps/web/dist`) e mantém o fallback SPA (deep links como `https://painel-amococ.vercel.app/login` e o F5 em qualquer tela **não dão 404**); há cópias de segurança em `apps/web/vercel.json` (caso o *Root Directory* do projeto seja ajustado para `apps/web`) e em `apps/web/public/vercel.json` (deploy manual do dist).
+> **Deploy (ação manual sua):** suba o conteúdo da pasta `apps/web/dist/` no servidor/hospedagem estática. O cliente recebe o sistema em **estado de primeira utilização** (§13): SuperAdmin inicial `amococ` (senha definida no seed — §4) + assinatura oficial já cadastrada e **sem nenhum associado, identificador utilizado, carteirinha ou dado de demonstração**. Verifique antes com `node scripts/verify-deploy-clean.mjs`. **No Vercel**, o `vercel.json` da raiz já aponta `installCommand`/`buildCommand`/`outputDirectory` para o monorepo (`apps/web/dist`) e mantém o fallback SPA (deep links como `https://painel-amococ.vercel.app/login` e o F5 em qualquer tela **não dão 404**); há cópias de segurança em `apps/web/vercel.json` (caso o *Root Directory* do projeto seja ajustado para `apps/web`) e em `apps/web/public/vercel.json` (deploy manual do dist).
 
 > A aplicação roda **100% local**, sem domínio, sem hospedagem e sem backend remoto.
 
@@ -106,10 +106,11 @@ Quando o banco local está vazio, o sistema cria automaticamente o primeiro usu�
 | Campo | Valor |
 | --- | --- |
 | **Login** | `amococ` |
-| **Senha** | (não documentada — definida no seed) |
-| **Role** | SUPERADMIN |
+| **Perfil** | SUPERADMIN |
 
-A senha pode (e deve) ser alterada pelo SuperAdmin em:
+A senha inicial padrão **não é documentada** (jamais em README/docs): ela é definida no seed
+do backend, em `apps/api/src/modules/system/system.service.ts` (constante
+`INITIAL_SUPERADMIN_PASSWORD`). Ela pode (e deve) ser alterada pelo SuperAdmin em:
 
 **Configurações → Segurança → Alterar minha senha**
 
@@ -123,7 +124,7 @@ A senha pode (e deve) ser alterada pelo SuperAdmin em:
 - `usedIdentifiers` (v2): reserva **permanente** de matrículas e códigos já emitidos — sobrevive à exclusão definitiva do associado e garante que nenhum identificador usado volte a ser gerado
 - Os dados permanecem após recarregar a página, fechar o navegador e reiniciar o computador
 
-> Para "zerar" o sistema, use **Configurações → Sistema → Limpar base de dados** (Somente SUPERADMIN): apaga todos os dados locais e restaura o estado de **primeira utilização** — usuário `amococ`, configurações padrão e (em produção) a assinatura oficial. **Os dados de demonstração NÃO voltam** — "LIMPAR" zera de verdade, em qualquer ambiente — e a sessão é encerrada. Alternativa técnica: apague o banco `amococ_db` pelo DevTools (Application → IndexedDB).
+> Para "zerar" o sistema, use **Configurações → Sistema → Limpar base de dados** (Somente SUPERADMIN): apaga todos os dados locais e restaura o estado de **primeira utilização** — usuário `amococ` (senha do seed — §4), configurações padrão e (em produção) a assinatura oficial. **Os dados de demonstração NÃO voltam** — "LIMPAR" zera de verdade, em qualquer ambiente — e a sessão é encerrada. Alternativa técnica: apague o banco `amococ_db` pelo DevTools (Application → IndexedDB).
 
 ---
 
@@ -262,7 +263,7 @@ Associado → Gerar Carteirinha → validar dados → matrícula → código
 
 Quando o banco está vazio, o sistema nasce em **estado de primeira utilização** — é exatamente o que o cliente recebe no deploy de produção:
 
-- SuperAdmin `amococ`
+- SuperAdmin `amococ` (senha definida no seed — §4)
 - Configurações padrão
 - **Assinatura oficial já cadastrada** (somente em produção): o asset `public/assets/images/assinatura-leo.png` é aplicado automaticamente com o mesmo processamento do envio pela tela (`resizeSignature` 700 px preservando transparência). O presidente não precisa importar nada — e pode **trocar, arrastar/reposicionar ou remover** em Configurações → Assinatura
 - **Nada mais**: nenhum associado, nenhum identificador (matrícula/código) utilizado, nenhuma carteirinha emitida e nenhum registro fictício de auditoria — a primeira matrícula real será `000001` e o Dashboard nasce zerado

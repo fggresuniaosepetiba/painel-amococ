@@ -1,6 +1,6 @@
 # Changelog — Deploy em produção e resiliência da API
 
-- API no ar (Render + Neon + web Vercel); login `amococ` verificado de
+- API no ar (Render + Neon + web Vercel); login do SuperAdmin `amococ` (senha do seed) verificado de
   ponta a ponta (seed 200, login 200 com JWT, dashboard sem erros de console).
 - Erro inesperado nunca mais derruba o processo: `toApiError` total (500
   `INTERNAL_ERROR` JSON) + log sempre, inclusive em produção (ADR-022).

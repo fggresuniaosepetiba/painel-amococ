@@ -17,6 +17,6 @@
   com `showClose={false}` para não duplicar o controle), além de `ESC` e
   overlay (Radix). Nenhum endpoint, permissão ou schema alterado.
 - Validação: `pnpm --filter @amococ/web typecheck` e
-  `pnpm --filter @amococ/web build` limpos; smoke no navegador (login
-  `amococ`, aba Dashboard) confirmando ícone/ordem, carregamento da
+  `pnpm --filter @amococ/web build` limpos; smoke no navegador (login do
+  SuperAdmin `amococ`, senha do seed; aba Dashboard) confirmando ícone/ordem, carregamento da
   imagem e fechamento.
