@@ -108,9 +108,9 @@ Quando o banco local está vazio, o sistema cria automaticamente o primeiro usu�
 | **Login** | `amococ` |
 | **Perfil** | SUPERADMIN |
 
-A senha inicial padrão **não é documentada** (jamais em README/docs): ela é definida no seed
-do backend, em `apps/api/src/modules/system/system.service.ts` (constante
-`INITIAL_SUPERADMIN_PASSWORD`). Ela pode (e deve) ser alterada pelo SuperAdmin em:
+A senha inicial padrão **não é documentada** (jamais em README/docs): ela vem do ambiente,
+na variável `INITIAL_SUPERADMIN_PASSWORD` do `.env` (o seed falha com erro explícito se ela
+não estiver definida). Ela pode (e deve) ser alterada pelo SuperAdmin em:
 
 **Configurações → Segurança → Alterar minha senha**
 

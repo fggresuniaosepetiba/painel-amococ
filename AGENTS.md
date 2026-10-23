@@ -26,7 +26,8 @@
   versionados** (README, `docs/**`, `prompts/**`, comentários de código).
   Referencie **onde** o valor é definido (constante/env) em vez do valor.
 - Login/documentação usam só o identificador (ex.: `amococ`); a senha inicial
-  vive em `INITIAL_SUPERADMIN_PASSWORD` e deve ser trocada no primeiro acesso.
+  vive no `.env`/ambiente (`INITIAL_SUPERADMIN_PASSWORD` — nunca no código) e
+  deve ser trocada no primeiro acesso.
 - Se um segredo for encontrado em arquivo versionado: remova do arquivo **e**
   avise para avaliar a limpeza do histórico do git.
 
