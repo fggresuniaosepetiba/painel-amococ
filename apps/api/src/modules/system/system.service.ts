@@ -25,7 +25,8 @@ import { usersRepository } from "../users/users.repository.js";
 import { usedIdentifiersRepository } from "../used-identifiers/used-identifiers.repository.js";
 
 // Seed + factory reset — espelho server-side de seedService.ts/systemService.ts.
-// Estado de primeira utilização: SuperAdmin amococ, configurações padrão,
+// Estado de primeira utilização: SuperAdmin inicial (senha definida em
+// INITIAL_SUPERADMIN_PASSWORD abaixo — nunca documentada), configurações padrão,
 // assinatura oficial do asset, ZERO associados/identificadores/carteirinhas/auditoria.
 // `demo: true` adiciona os dados de demonstração (equivale ao seed de DEV).
 

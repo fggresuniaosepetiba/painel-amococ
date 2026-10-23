@@ -20,7 +20,7 @@ function sendError(res: Response, err: unknown): void {
 export const systemRouter = Router();
 
 // Seed público (Fase 5): o boot do frontend chama antes do login para
-// garantir a base mínima (SuperAdmin amococ). Idempotente — só semeia
+// garantir a base mínima (SuperAdmin inicial do seed). Idempotente — só semeia
 // banco vazio. `demo=true` só fora de produção (nunca injeta demo em prod).
 systemRouter.post("/seed", async (req: Request, res: Response) => {
   try {
