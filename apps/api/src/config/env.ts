@@ -30,6 +30,10 @@ export const env = {
   // Rate-limit do login: tentativas por janela de 15 min por IP (Fase 5).
   // LOGIN_RATE_LIMIT_MAX permite aos testes configurar um teto baixo.
   loginRateLimitMax: parsePositiveInt(process.env["LOGIN_RATE_LIMIT_MAX"], 20),
+  // Senha inicial do SuperAdmin criado pelo seed (primeira utilização e LIMPAR).
+  // Vive SÓ no ambiente/.env — nunca no código-fonte nem na documentação.
+  // Ausente → o seed falha com erro explícito (nunca existe senha padrão).
+  initialSuperadminPassword: process.env["INITIAL_SUPERADMIN_PASSWORD"] ?? "",
 } as const;
 
 export const isProduction = env.nodeEnv === "production";

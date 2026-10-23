@@ -28,7 +28,7 @@ describe("Resiliência — erro inesperado vira 500 (nunca derruba o processo)",
     try {
       const response = await request(brokenApp())
         .post("/api/auth/login")
-        .send({ login: "amococ", password: "123" })
+        .send({ login: "amococ", password: "senha-irrelevante" })
         .expect(500);
       expect(response.body.status).toBe("error");
     } finally {

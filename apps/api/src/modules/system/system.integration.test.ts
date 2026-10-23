@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { systemService } from "./system.service.js";
+import { env } from "../../config/env.js";
 import { createTestClient, resetDatabase } from "../../test/db.js";
 
 let db: PrismaClient;
@@ -25,7 +26,7 @@ describe("seed — primeira utilização", () => {
     const admin = await db.user.findUnique({ where: { login: "amococ" } });
     expect(admin?.role).toBe("SUPERADMIN");
     expect(admin?.status).toBe("ATIVO");
-    expect(admin?.passwordHash).not.toBe("123");
+    expect(admin?.passwordHash).not.toBe(env.initialSuperadminPassword);
 
     const settings = await db.setting.findUnique({ where: { id: "general" } });
     const data = settings?.data as unknown as {

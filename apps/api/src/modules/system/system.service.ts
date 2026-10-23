@@ -7,6 +7,7 @@ import type {
   SignatureSettings,
 } from "@amococ/shared";
 import { prisma } from "../../lib/prisma.js";
+import { env } from "../../config/env.js";
 import { logAudit } from "../../shared/audit.js";
 import { ApiError } from "../../shared/api-error.js";
 import type { BackupInput } from "../../shared/validation.js";
@@ -25,13 +26,25 @@ import { usersRepository } from "../users/users.repository.js";
 import { usedIdentifiersRepository } from "../used-identifiers/used-identifiers.repository.js";
 
 // Seed + factory reset — espelho server-side de seedService.ts/systemService.ts.
-// Estado de primeira utilização: SuperAdmin inicial (senha definida em
-// INITIAL_SUPERADMIN_PASSWORD abaixo — nunca documentada), configurações padrão,
-// assinatura oficial do asset, ZERO associados/identificadores/carteirinhas/auditoria.
+// Estado de primeira utilização: SuperAdmin inicial (senha vinda do ambiente em
+// INITIAL_SUPERADMIN_PASSWORD — nunca no código nem na documentação), configurações
+// padrão, assinatura oficial do asset, ZERO associados/identificadores/carteirinhas/auditoria.
 // `demo: true` adiciona os dados de demonstração (equivale ao seed de DEV).
 
 const INITIAL_SUPERADMIN_LOGIN = "amococ";
-const INITIAL_SUPERADMIN_PASSWORD = "123";
+
+/** Senha do SuperAdmin inicial — sempre do ambiente (.env); nunca do código. */
+function initialSuperadminPassword(): string {
+  const password = env.initialSuperadminPassword;
+  if (password.length === 0) {
+    throw new ApiError(
+      500,
+      "INITIAL_SUPERADMIN_PASSWORD_MISSING",
+      "Senha inicial do SuperAdmin não configurada: defina INITIAL_SUPERADMIN_PASSWORD no ambiente.",
+    );
+  }
+  return password;
+}
 
 /** Asset oficial servido pelo frontend (apps/web/public). */
 const OFFICIAL_SIGNATURE_URL = new URL(
@@ -225,7 +238,7 @@ export const systemService = {
     const daysAgo = (days: number) =>
       new Date(now + days * 24 * 60 * 60 * 1000).toISOString();
 
-    const { salt, hash } = await passwordHasher.hash(INITIAL_SUPERADMIN_PASSWORD);
+    const { salt, hash } = await passwordHasher.hash(initialSuperadminPassword());
     const adminId = createId();
     await usersRepository.create(db, {
       id: adminId,

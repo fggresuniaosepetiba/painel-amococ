@@ -3,6 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../app.js";
+import { env } from "../config/env.js";
 import { createTestClient, resetDatabase } from "./db.js";
 import { bearer, createIdentity, type TestIdentity } from "./auth-helpers.js";
 import { memberDraft } from "./fixtures.js";
@@ -121,7 +122,7 @@ describe("HTTP — usuários e carteirinhas", () => {
     await request(app).post("/api/system/seed").send({}).expect(200);
     const seeded = await request(app)
       .post("/api/auth/login")
-      .send({ login: "amococ", password: "123" })
+      .send({ login: "amococ", password: env.initialSuperadminPassword })
       .expect(200);
     const seedToken = seeded.body.data.accessToken as string;
     const audit = await request(app)

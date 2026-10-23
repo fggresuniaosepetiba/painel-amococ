@@ -8,5 +8,8 @@ export default defineConfig({
     // e o reset entre testes exige execução serializada dos arquivos.
     pool: "forks",
     poolOptions: { forks: { singleFork: true } },
+    // Senha do seed nos testes: valor sintético, só do ambiente de teste —
+    // credencial real vive apenas no .env (nunca em código/doc).
+    env: { INITIAL_SUPERADMIN_PASSWORD: "teste-SenhaInicial-1" },
   },
 });
